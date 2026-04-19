@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,17 +7,39 @@ import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  ArrowLeft, ArrowRight, Wand2, Loader2, Save, Dices, User, CheckCircle, Sparkles,
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  ArrowLeft, 
+  ArrowRight,
+  Wand2,
+  Loader2,
+  Save,
+  Dices,
+  User,
+  Sword,
+  Palette,
+  BarChart3,
+  FileText,
+  CheckCircle,
+  Shield,
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { RACES, Race, getRaceById } from '@/lib/races';
 import { CLASSES, CharacterClass, getClassById } from '@/lib/classes';
-import {
-  Stats, AppearanceConfig, CharacterBuild, DEFAULT_STATS, DEFAULT_APPEARANCE,
-  HAIR_STYLES, SCAR_OPTIONS, TATTOO_OPTIONS, ACCESSORY_OPTIONS,
-  calculateFinalStats, generateCharacterDescription,
+import { 
+  Stats, 
+  AppearanceConfig, 
+  CharacterBuild,
+  DEFAULT_STATS,
+  DEFAULT_APPEARANCE,
+  HAIR_STYLES,
+  SCAR_OPTIONS,
+  TATTOO_OPTIONS,
+  ACCESSORY_OPTIONS,
+  calculateFinalStats,
+  generateCharacterDescription
 } from '@/lib/character-builder';
 import { EquippedItems, DEFAULT_EQUIPPED, generateEquipmentPrompt } from '@/lib/equipment';
 import { EquipmentSelector } from '@/components/equipment-selector';
@@ -30,7 +52,7 @@ import { CharacterArchetype } from '@/lib/character-archetypes';
 const STEPS = ['race', 'class', 'appearance', 'stats', 'equipment', 'summary'] as const;
 type Step = typeof STEPS[number];
 
-const STAT_POINTS = 27;
+const STAT_POINTS = 27; // Point-buy system
 
 export default function CharacterBuilder() {
   const navigate = useNavigate();
@@ -48,53 +70,107 @@ export default function CharacterBuilder() {
   const [isSaving, setIsSaving] = useState(false);
 
   const stepIndex = STEPS.indexOf(currentStep);
-  const goNext = () => stepIndex < STEPS.length - 1 && setCurrentStep(STEPS[stepIndex + 1]);
-  const goPrev = () => stepIndex > 0 && setCurrentStep(STEPS[stepIndex - 1]);
-  const getUsedPoints = () => Object.values(stats).reduce((sum, val) => sum + Math.max(0, val - 8), 0);
+
+  const goNext = () => {
+    if (stepIndex < STEPS.length - 1) {
+      setCurrentStep(STEPS[stepIndex + 1]);
+    }
+  };
+
+  const goPrev = () => {
+    if (stepIndex > 0) {
+      setCurrentStep(STEPS[stepIndex - 1]);
+    }
+  };
 
   const canProceed = () => {
     switch (currentStep) {
-      case 'race': return selectedRace !== null;
-      case 'class': return selectedClass !== null;
-      case 'stats': return getUsedPoints() <= STAT_POINTS;
-      case 'summary': return characterName.trim().length > 0;
-      default: return true;
+      case 'race':
+        return selectedRace !== null;
+      case 'class':
+        return selectedClass !== null;
+      case 'appearance':
+        return true;
+      case 'stats':
+        return getUsedPoints() <= STAT_POINTS;
+      case 'equipment':
+        return true;
+      case 'summary':
+        return characterName.trim().length > 0;
+      default:
+        return true;
     }
+  };
+
+  const getUsedPoints = () => {
+    return Object.values(stats).reduce((sum, val) => sum + Math.max(0, val - 8), 0);
+  };
+
+  const handleStatChange = (stat: keyof Stats, value: number) => {
+    setStats(prev => ({ ...prev, [stat]: value }));
   };
 
   const randomizeStats = () => {
     const newStats: Stats = { ...DEFAULT_STATS };
     let points = STAT_POINTS;
     const statKeys = Object.keys(newStats) as (keyof Stats)[];
+    
     while (points > 0) {
-      const k = statKeys[Math.floor(Math.random() * statKeys.length)];
-      if (newStats[k] < 15) { newStats[k]++; points--; }
+      const randomStat = statKeys[Math.floor(Math.random() * statKeys.length)];
+      if (newStats[randomStat] < 15) {
+        newStats[randomStat]++;
+        points--;
+      }
     }
+    
     setStats(newStats);
     toast.success('Stats randomized!');
   };
 
   const generatePreview = async () => {
     if (!selectedRace || !selectedClass) return;
+
     setIsGeneratingPreview(true);
+    
     const description = generateCharacterDescription({
-      id: '', name: characterName || 'Character', race: selectedRace,
-      characterClass: selectedClass, appearance, stats,
-      equipment: Object.values(equipped).filter(Boolean).map(e => e!.name), backstory,
+      id: '',
+      name: characterName || 'Character',
+      race: selectedRace,
+      characterClass: selectedClass,
+      appearance,
+      stats,
+      equipment: Object.values(equipped).filter(Boolean).map(e => e!.name),
+      backstory,
     });
+
     const equipmentHints = generateEquipmentPrompt(equipped);
     const fullDescription = equipmentHints ? `${description}, ${equipmentHints}` : description;
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-character-reference', {
-        body: { characterName: characterName || 'Character', characterDescription: fullDescription, artStyle: 'western', poseTypes: ['portrait'] },
+        body: {
+          characterName: characterName || 'Character',
+          characterDescription: fullDescription,
+          artStyle: 'western',
+          poseTypes: ['portrait'],
+        },
       });
+
       if (error) {
-        if (error.message?.includes('429')) toast.error('Rate limit reached. Please try again later.');
-        else if (error.message?.includes('402')) toast.error('AI credits exhausted. Please add credits.');
-        else toast.error('Failed to generate preview');
+        if (error.message?.includes('429')) {
+          toast.error('Rate limit reached. Please try again later.');
+        } else if (error.message?.includes('402')) {
+          toast.error('AI credits exhausted. Please add credits.');
+        } else {
+          toast.error('Failed to generate preview');
+        }
         return;
       }
-      if (data?.images?.[0]) { setPreviewImage(data.images[0].image); toast.success('Preview generated!'); }
+
+      if (data?.images?.[0]) {
+        setPreviewImage(data.images[0].image);
+        toast.success('Preview generated!');
+      }
     } catch (err) {
       console.error('Preview generation error:', err);
       toast.error('Failed to generate preview');
@@ -108,23 +184,37 @@ export default function CharacterBuilder() {
       toast.error('Please complete all required fields');
       return;
     }
+
     setIsSaving(true);
+
     const build: CharacterBuild = {
-      id: `char-${Date.now()}`, name: characterName, race: selectedRace,
-      characterClass: selectedClass, appearance,
+      id: `char-${Date.now()}`,
+      name: characterName,
+      race: selectedRace,
+      characterClass: selectedClass,
+      appearance,
       stats: calculateFinalStats(stats, selectedRace, selectedClass),
-      equipment: Object.values(equipped).filter(Boolean).map(e => e!.name), backstory,
+      equipment: Object.values(equipped).filter(Boolean).map(e => e!.name),
+      backstory,
     };
+
+    // Save to localStorage as a character preset
     try {
-      const libRaw = localStorage.getItem('celsius-character-library');
-      const lib = libRaw ? JSON.parse(libRaw) : [];
-      const now = new Date().toISOString();
-      lib.push({
-        id: build.id, name: build.name, race: selectedRace.name, classRole: selectedClass.name,
-        archetype: selectedArchetype?.name, backstory, imageUrl: previewImage || undefined,
-        createdAt: now, updatedAt: now, description: generateCharacterDescription(build),
-      });
-      localStorage.setItem('celsius-character-library', JSON.stringify(lib));
+      const existingPresets = JSON.parse(localStorage.getItem('comic-character-presets') || '[]');
+      const newPreset = {
+        id: build.id,
+        name: build.name,
+        description: generateCharacterDescription(build),
+        referenceImages: previewImage ? [previewImage] : [],
+        poses: previewImage ? [{
+          id: `pose-${Date.now()}`,
+          image: previewImage,
+          poseType: 'portrait',
+          tags: [selectedRace.name, selectedClass.name],
+        }] : [],
+      };
+      
+      localStorage.setItem('comic-character-presets', JSON.stringify([...existingPresets, newPreset]));
       toast.success('Character saved to library!');
       navigate('/characters');
     } catch (err) {
@@ -137,27 +227,38 @@ export default function CharacterBuilder() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={() => navigate('/characters')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />Back
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
             </Button>
-            <h1 className="font-display text-xl text-foreground flex items-center gap-2">
-              <Wand2 className="w-5 h-5 text-primary" />Character Builder
+            <h1 className="font-comic text-xl text-foreground flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-primary" />
+              Character Builder
             </h1>
           </div>
+          
+          {/* Step indicators */}
           <div className="flex items-center gap-2">
             {STEPS.map((step, idx) => (
               <React.Fragment key={step}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
-                  idx < stepIndex ? 'bg-primary text-primary-foreground'
-                    : idx === stepIndex ? 'bg-primary/20 text-primary border-2 border-primary'
-                    : 'bg-muted text-muted-foreground'
-                }`}>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
+                    idx < stepIndex
+                      ? 'bg-primary text-primary-foreground'
+                      : idx === stepIndex
+                      ? 'bg-primary/20 text-primary border-2 border-primary'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
                   {idx < stepIndex ? <CheckCircle className="w-4 h-4" /> : idx + 1}
                 </div>
-                {idx < STEPS.length - 1 && <div className={`w-8 h-0.5 ${idx < stepIndex ? 'bg-primary' : 'bg-muted'}`} />}
+                {idx < STEPS.length - 1 && (
+                  <div className={`w-8 h-0.5 ${idx < stepIndex ? 'bg-primary' : 'bg-muted'}`} />
+                )}
               </React.Fragment>
             ))}
           </div>
@@ -166,61 +267,89 @@ export default function CharacterBuilder() {
 
       <main className="container py-8 max-w-5xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
           <div className="lg:col-span-2">
+            {/* Race Selection */}
             {currentStep === 'race' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-display text-foreground mb-2">Choose Your Race</h2>
-                    <p className="text-muted-foreground">Select a race that defines your character&apos;s heritage and innate abilities.</p>
+                    <h2 className="text-2xl font-comic text-foreground mb-2">Choose Your Race</h2>
+                    <p className="text-muted-foreground">Select a race that defines your character's heritage and innate abilities.</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <CharacterTemplateSelector
-                      onSelect={(template: CharacterTemplate) => {
-                        const race = getRaceById(template.raceId);
-                        const charClass = getClassById(template.classId);
-                        if (race) setSelectedRace(race);
-                        if (charClass) setSelectedClass(charClass);
-                        if (template.suggestedStats) setStats(prev => ({ ...prev, ...template.suggestedStats }));
-                        if (template.suggestedAppearance) {
-                          setAppearance(prev => ({
-                            ...prev, ...template.suggestedAppearance,
-                            face: { ...prev.face, ...(template.suggestedAppearance.face || {}) },
-                            body: { ...prev.body, ...(template.suggestedAppearance.body || {}) },
-                            hair: { ...prev.hair, ...(template.suggestedAppearance.hair || {}) },
-                            distinguishing: { ...prev.distinguishing, ...(template.suggestedAppearance.distinguishing || {}) },
-                          }));
-                        }
-                        toast.success(`Applied "${template.name}" template`);
-                      }}
-                      trigger={<Button variant="outline" className="gap-2"><Sparkles className="w-4 h-4" />Use Template</Button>}
-                    />
-                    <CharacterArchetypeSelector
-                      selectedArchetype={selectedArchetype}
-                      onSelectArchetype={setSelectedArchetype}
-                      raceId={selectedRace?.id} classId={selectedClass?.id}
-                    />
-                  </div>
+                  {/* Template Selector */}
+                  <CharacterTemplateSelector
+                    onSelect={(template: CharacterTemplate) => {
+                      // Apply template
+                      const race = getRaceById(template.raceId);
+                      const charClass = getClassById(template.classId);
+                      
+                      if (race) setSelectedRace(race);
+                      if (charClass) setSelectedClass(charClass);
+                      
+                      if (template.suggestedStats) {
+                        setStats(prev => ({ ...prev, ...template.suggestedStats }));
+                      }
+                      
+                      if (template.suggestedAppearance) {
+                        setAppearance(prev => ({
+                          ...prev,
+                          ...template.suggestedAppearance,
+                          face: { ...prev.face, ...(template.suggestedAppearance.face || {}) },
+                          body: { ...prev.body, ...(template.suggestedAppearance.body || {}) },
+                          hair: { ...prev.hair, ...(template.suggestedAppearance.hair || {}) },
+                          distinguishing: { ...prev.distinguishing, ...(template.suggestedAppearance.distinguishing || {}) },
+                        }));
+                      }
+                      
+                      toast.success(`Applied "${template.name}" template`);
+                    }}
+                    trigger={
+                      <Button variant="outline" className="gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        Use Template
+                      </Button>
+                    }
+                  />
+                  <CharacterArchetypeSelector
+                    selectedArchetype={selectedArchetype}
+                    onSelectArchetype={setSelectedArchetype}
+                    raceId={selectedRace?.id}
+                    classId={selectedClass?.id}
+                  />
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {RACES.map((race) => (
-                    <Card key={race.id}
-                      className={`cursor-pointer transition-all hover:border-primary/50 ${selectedRace?.id === race.id ? 'border-primary bg-primary/5' : ''}`}
-                      onClick={() => setSelectedRace(race)}>
+                    <Card
+                      key={race.id}
+                      className={`cursor-pointer transition-all hover:border-primary/50 ${
+                        selectedRace?.id === race.id ? 'border-primary bg-primary/5' : ''
+                      }`}
+                      onClick={() => setSelectedRace(race)}
+                    >
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center justify-between">
                           {race.name}
-                          {selectedRace?.id === race.id && <CheckCircle className="w-5 h-5 text-primary" />}
+                          {selectedRace?.id === race.id && (
+                            <CheckCircle className="w-5 h-5 text-primary" />
+                          )}
                         </CardTitle>
                         <CardDescription>{race.description}</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="flex flex-wrap gap-1">
-                          {race.traits.map((trait) => <Badge key={trait} variant="secondary" className="text-xs">{trait}</Badge>)}
+                          {race.traits.map((trait) => (
+                            <Badge key={trait} variant="secondary" className="text-xs">
+                              {trait}
+                            </Badge>
+                          ))}
                         </div>
                         <div className="mt-3 text-xs text-muted-foreground">
                           <strong>Stat Bonuses:</strong>{' '}
-                          {Object.entries(race.statBonuses).map(([s, b]) => `${s.charAt(0).toUpperCase() + s.slice(1)} +${b}`).join(', ')}
+                          {Object.entries(race.statBonuses).map(([stat, bonus]) => 
+                            `${stat.charAt(0).toUpperCase() + stat.slice(1)} +${bonus}`
+                          ).join(', ')}
                         </div>
                       </CardContent>
                     </Card>
@@ -229,21 +358,29 @@ export default function CharacterBuilder() {
               </div>
             )}
 
+            {/* Class Selection */}
             {currentStep === 'class' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-display text-foreground mb-2">Choose Your Class</h2>
+                  <h2 className="text-2xl font-comic text-foreground mb-2">Choose Your Class</h2>
                   <p className="text-muted-foreground">Select a class that determines your combat style and abilities.</p>
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {CLASSES.map((cls) => (
-                    <Card key={cls.id}
-                      className={`cursor-pointer transition-all hover:border-primary/50 ${selectedClass?.id === cls.id ? 'border-primary bg-primary/5' : ''}`}
-                      onClick={() => setSelectedClass(cls)}>
+                    <Card
+                      key={cls.id}
+                      className={`cursor-pointer transition-all hover:border-primary/50 ${
+                        selectedClass?.id === cls.id ? 'border-primary bg-primary/5' : ''
+                      }`}
+                      onClick={() => setSelectedClass(cls)}
+                    >
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center justify-between">
                           {cls.name}
-                          {selectedClass?.id === cls.id && <CheckCircle className="w-5 h-5 text-primary" />}
+                          {selectedClass?.id === cls.id && (
+                            <CheckCircle className="w-5 h-5 text-primary" />
+                          )}
                         </CardTitle>
                         <CardDescription>{cls.description}</CardDescription>
                       </CardHeader>
@@ -259,12 +396,14 @@ export default function CharacterBuilder() {
               </div>
             )}
 
+            {/* Appearance */}
             {currentStep === 'appearance' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-display text-foreground mb-2">Customize Appearance</h2>
-                  <p className="text-muted-foreground">Fine-tune your character&apos;s physical features.</p>
+                  <h2 className="text-2xl font-comic text-foreground mb-2">Customize Appearance</h2>
+                  <p className="text-muted-foreground">Fine-tune your character's physical features.</p>
                 </div>
+                
                 <Tabs defaultValue="body" className="w-full">
                   <TabsList className="w-full">
                     <TabsTrigger value="body" className="flex-1">Body</TabsTrigger>
@@ -272,109 +411,281 @@ export default function CharacterBuilder() {
                     <TabsTrigger value="hair" className="flex-1">Hair</TabsTrigger>
                     <TabsTrigger value="extras" className="flex-1">Extras</TabsTrigger>
                   </TabsList>
+
                   <TabsContent value="body" className="space-y-4 mt-4">
-                    {(['height', 'build'] as const).map((key) => (
-                      <div key={key}>
-                        <Label className="capitalize">{key}</Label>
-                        <Slider value={[appearance.body[key]]}
-                          onValueChange={([v]) => setAppearance(prev => ({ ...prev, body: { ...prev.body, [key]: v } }))}
-                          max={100} step={1} className="mt-2" />
+                    <div>
+                      <Label>Height</Label>
+                      <Slider
+                        value={[appearance.body.height]}
+                        onValueChange={([v]) => setAppearance(prev => ({ 
+                          ...prev, 
+                          body: { ...prev.body, height: v } 
+                        }))}
+                        max={100}
+                        step={1}
+                        className="mt-2"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Short</span>
+                        <span>Tall</span>
                       </div>
-                    ))}
+                    </div>
+
+                    <div>
+                      <Label>Build</Label>
+                      <Slider
+                        value={[appearance.body.build]}
+                        onValueChange={([v]) => setAppearance(prev => ({ 
+                          ...prev, 
+                          body: { ...prev.body, build: v } 
+                        }))}
+                        max={100}
+                        step={1}
+                        className="mt-2"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Slim</span>
+                        <span>Muscular</span>
+                      </div>
+                    </div>
+
                     <div>
                       <Label>Skin Tone</Label>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {selectedRace?.appearanceModifiers.skinTones.map((tone) => (
-                          <Badge key={tone} variant={appearance.body.skinTone === tone ? 'default' : 'outline'}
+                          <Badge
+                            key={tone}
+                            variant={appearance.body.skinTone === tone ? 'default' : 'outline'}
                             className="cursor-pointer"
-                            onClick={() => setAppearance(prev => ({ ...prev, body: { ...prev.body, skinTone: tone } }))}>
+                            onClick={() => setAppearance(prev => ({ 
+                              ...prev, 
+                              body: { ...prev.body, skinTone: tone } 
+                            }))}
+                          >
                             {tone}
                           </Badge>
                         ))}
                       </div>
                     </div>
                   </TabsContent>
+
                   <TabsContent value="face" className="space-y-4 mt-4">
-                    {(['shape', 'eyeSize', 'noseWidth', 'lipFullness'] as const).map((key) => (
-                      <div key={key}>
-                        <Label className="capitalize">{key.replace(/([A-Z])/g, ' $1')}</Label>
-                        <Slider value={[appearance.face[key]]}
-                          onValueChange={([v]) => setAppearance(prev => ({ ...prev, face: { ...prev.face, [key]: v } }))}
-                          max={100} step={1} className="mt-2" />
+                    <div>
+                      <Label>Face Shape</Label>
+                      <Slider
+                        value={[appearance.face.shape]}
+                        onValueChange={([v]) => setAppearance(prev => ({ 
+                          ...prev, 
+                          face: { ...prev.face, shape: v } 
+                        }))}
+                        max={100}
+                        step={1}
+                        className="mt-2"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Round</span>
+                        <span>Angular</span>
                       </div>
-                    ))}
+                    </div>
+
+                    <div>
+                      <Label>Eye Size</Label>
+                      <Slider
+                        value={[appearance.face.eyeSize]}
+                        onValueChange={([v]) => setAppearance(prev => ({ 
+                          ...prev, 
+                          face: { ...prev.face, eyeSize: v } 
+                        }))}
+                        max={100}
+                        step={1}
+                        className="mt-2"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Nose Width</Label>
+                      <Slider
+                        value={[appearance.face.noseWidth]}
+                        onValueChange={([v]) => setAppearance(prev => ({ 
+                          ...prev, 
+                          face: { ...prev.face, noseWidth: v } 
+                        }))}
+                        max={100}
+                        step={1}
+                        className="mt-2"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Lip Fullness</Label>
+                      <Slider
+                        value={[appearance.face.lipFullness]}
+                        onValueChange={([v]) => setAppearance(prev => ({ 
+                          ...prev, 
+                          face: { ...prev.face, lipFullness: v } 
+                        }))}
+                        max={100}
+                        step={1}
+                        className="mt-2"
+                      />
+                    </div>
                   </TabsContent>
+
                   <TabsContent value="hair" className="space-y-4 mt-4">
                     <div>
                       <Label>Hair Style</Label>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {HAIR_STYLES.map((style) => (
-                          <Badge key={style} variant={appearance.hair.style === style ? 'default' : 'outline'}
+                          <Badge
+                            key={style}
+                            variant={appearance.hair.style === style ? 'default' : 'outline'}
                             className="cursor-pointer capitalize"
-                            onClick={() => setAppearance(prev => ({ ...prev, hair: { ...prev.hair, style } }))}>
+                            onClick={() => setAppearance(prev => ({ 
+                              ...prev, 
+                              hair: { ...prev.hair, style } 
+                            }))}
+                          >
                             {style}
                           </Badge>
                         ))}
                       </div>
                     </div>
+
                     <div>
                       <Label>Hair Color</Label>
-                      <Input type="color" value={appearance.hair.color}
-                        onChange={(e) => setAppearance(prev => ({ ...prev, hair: { ...prev.hair, color: e.target.value } }))}
-                        className="w-20 h-10 mt-2" />
+                      <Input
+                        type="color"
+                        value={appearance.hair.color}
+                        onChange={(e) => setAppearance(prev => ({ 
+                          ...prev, 
+                          hair: { ...prev.hair, color: e.target.value } 
+                        }))}
+                        className="w-20 h-10 mt-2"
+                      />
                     </div>
                   </TabsContent>
+
                   <TabsContent value="extras" className="space-y-4 mt-4">
-                    {([['scars', 'Scars', SCAR_OPTIONS], ['tattoos', 'Tattoos', TATTOO_OPTIONS], ['accessories', 'Accessories', ACCESSORY_OPTIONS]] as const).map(([key, label, options]) => (
-                      <div key={key}>
-                        <Label>{label}</Label>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {options.map((opt) => (
-                            <Badge key={opt} variant={appearance.distinguishing[key].includes(opt) ? 'default' : 'outline'}
-                              className="cursor-pointer"
-                              onClick={() => {
-                                const cur = appearance.distinguishing[key];
-                                const next = cur.includes(opt) ? cur.filter(s => s !== opt) : [...cur, opt];
-                                setAppearance(prev => ({ ...prev, distinguishing: { ...prev.distinguishing, [key]: next } }));
-                              }}>
-                              {opt}
-                            </Badge>
-                          ))}
-                        </div>
+                    <div>
+                      <Label>Scars</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {SCAR_OPTIONS.map((scar) => (
+                          <Badge
+                            key={scar}
+                            variant={appearance.distinguishing.scars.includes(scar) ? 'default' : 'outline'}
+                            className="cursor-pointer"
+                            onClick={() => {
+                              const scars = appearance.distinguishing.scars.includes(scar)
+                                ? appearance.distinguishing.scars.filter(s => s !== scar)
+                                : [...appearance.distinguishing.scars, scar];
+                              setAppearance(prev => ({ 
+                                ...prev, 
+                                distinguishing: { ...prev.distinguishing, scars } 
+                              }));
+                            }}
+                          >
+                            {scar}
+                          </Badge>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+
+                    <div>
+                      <Label>Tattoos</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {TATTOO_OPTIONS.map((tattoo) => (
+                          <Badge
+                            key={tattoo}
+                            variant={appearance.distinguishing.tattoos.includes(tattoo) ? 'default' : 'outline'}
+                            className="cursor-pointer"
+                            onClick={() => {
+                              const tattoos = appearance.distinguishing.tattoos.includes(tattoo)
+                                ? appearance.distinguishing.tattoos.filter(t => t !== tattoo)
+                                : [...appearance.distinguishing.tattoos, tattoo];
+                              setAppearance(prev => ({ 
+                                ...prev, 
+                                distinguishing: { ...prev.distinguishing, tattoos } 
+                              }));
+                            }}
+                          >
+                            {tattoo}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Accessories</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {ACCESSORY_OPTIONS.map((acc) => (
+                          <Badge
+                            key={acc}
+                            variant={appearance.distinguishing.accessories.includes(acc) ? 'default' : 'outline'}
+                            className="cursor-pointer"
+                            onClick={() => {
+                              const accessories = appearance.distinguishing.accessories.includes(acc)
+                                ? appearance.distinguishing.accessories.filter(a => a !== acc)
+                                : [...appearance.distinguishing.accessories, acc];
+                              setAppearance(prev => ({ 
+                                ...prev, 
+                                distinguishing: { ...prev.distinguishing, accessories } 
+                              }));
+                            }}
+                          >
+                            {acc}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
             )}
 
+            {/* Stats */}
             {currentStep === 'stats' && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-display text-foreground mb-2">Allocate Stats</h2>
+                    <h2 className="text-2xl font-comic text-foreground mb-2">Allocate Stats</h2>
                     <p className="text-muted-foreground">
-                      Points remaining: <span className={getUsedPoints() > STAT_POINTS ? 'text-destructive' : 'text-primary'}>{STAT_POINTS - getUsedPoints()}</span>
+                      Points remaining: <span className={getUsedPoints() > STAT_POINTS ? 'text-red-500' : 'text-primary'}>{STAT_POINTS - getUsedPoints()}</span>
                     </p>
                   </div>
                   <Button variant="outline" size="sm" onClick={randomizeStats}>
-                    <Dices className="w-4 h-4 mr-1" />Randomize
+                    <Dices className="w-4 h-4 mr-1" />
+                    Randomize
                   </Button>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   {(Object.entries(stats) as [keyof Stats, number][]).map(([stat, value]) => {
                     const raceBonus = selectedRace?.statBonuses[stat] || 0;
+                    const finalValue = value + raceBonus;
+                    
                     return (
                       <Card key={stat}>
                         <CardContent className="pt-4">
                           <div className="flex items-center justify-between mb-2">
                             <Label className="capitalize font-medium">{stat}</Label>
                             <div className="text-right">
-                              <span className="text-lg font-bold">{value + raceBonus}</span>
-                              {raceBonus > 0 && <span className="text-xs text-primary ml-1">(+{raceBonus})</span>}
+                              <span className="text-lg font-bold">{finalValue}</span>
+                              {raceBonus > 0 && (
+                                <span className="text-xs text-primary ml-1">(+{raceBonus})</span>
+                              )}
                             </div>
                           </div>
-                          <Slider value={[value]} onValueChange={([v]) => setStats(prev => ({ ...prev, [stat]: v }))} min={8} max={15} step={1} />
+                          <Slider
+                            value={[value]}
+                            onValueChange={([v]) => handleStatChange(stat, v)}
+                            min={8}
+                            max={15}
+                            step={1}
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>8</span>
+                            <span>15</span>
+                          </div>
                         </CardContent>
                       </Card>
                     );
@@ -383,43 +694,66 @@ export default function CharacterBuilder() {
               </div>
             )}
 
+            {/* Equipment */}
             {currentStep === 'equipment' && selectedClass && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-display text-foreground mb-2">Choose Equipment</h2>
+                  <h2 className="text-2xl font-comic text-foreground mb-2">Choose Equipment</h2>
                   <p className="text-muted-foreground">Select weapons, armor, and accessories for your character.</p>
                 </div>
-                <EquipmentSelector classId={selectedClass.id} equipped={equipped} onEquipmentChange={setEquipped} />
+                
+                <EquipmentSelector
+                  classId={selectedClass.id}
+                  equipped={equipped}
+                  onEquipmentChange={setEquipped}
+                />
               </div>
             )}
 
+            {/* Summary */}
             {currentStep === 'summary' && selectedRace && selectedClass && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-display text-foreground mb-2">Finalize Character</h2>
+                  <h2 className="text-2xl font-comic text-foreground mb-2">Finalize Character</h2>
                   <p className="text-muted-foreground">Review your character and add finishing touches.</p>
                 </div>
+
                 <div className="space-y-4">
                   <div>
                     <Label>Character Name *</Label>
-                    <Input value={characterName} onChange={(e) => setCharacterName(e.target.value)} placeholder="Enter character name..." className="mt-1" />
+                    <Input
+                      value={characterName}
+                      onChange={(e) => setCharacterName(e.target.value)}
+                      placeholder="Enter character name..."
+                      className="mt-1"
+                    />
                   </div>
-                  <BackstoryGenerator characterName={characterName} race={selectedRace}
-                    characterClass={selectedClass} appearance={appearance}
-                    backstory={backstory} onBackstoryChange={setBackstory} />
+
+                  <BackstoryGenerator
+                    characterName={characterName}
+                    race={selectedRace}
+                    characterClass={selectedClass}
+                    appearance={appearance}
+                    backstory={backstory}
+                    onBackstoryChange={setBackstory}
+                  />
+
+                  {/* Character Summary */}
                   <Card>
-                    <CardHeader><CardTitle>Character Summary</CardTitle></CardHeader>
+                    <CardHeader>
+                      <CardTitle>Character Summary</CardTitle>
+                    </CardHeader>
                     <CardContent className="space-y-2 text-sm">
-                      <div><strong>Race:</strong> {selectedRace.name}</div>
-                      <div><strong>Class:</strong> {selectedClass.name}</div>
-                      {selectedArchetype && <div><strong>Archetype:</strong> {selectedArchetype.name}</div>}
+                      <div><strong>Race:</strong> {selectedRace?.name}</div>
+                      <div><strong>Class:</strong> {selectedClass?.name}</div>
                       <div><strong>Equipment:</strong> {Object.values(equipped).filter(Boolean).map(e => e!.name).join(', ') || 'None selected'}</div>
                       <div className="pt-2">
                         <strong>Stats:</strong>
                         <div className="grid grid-cols-3 gap-2 mt-1">
                           {(Object.entries(calculateFinalStats(stats, selectedRace, selectedClass)) as [string, number][]).map(([stat, value]) => (
                             <Badge key={stat} variant="outline" className="justify-between">
-                              <span className="capitalize">{stat.slice(0, 3)}</span><span>{value}</span>
+                              <span className="capitalize">{stat.slice(0, 3)}</span>
+                              <span>{value}</span>
                             </Badge>
                           ))}
                         </div>
@@ -430,28 +764,62 @@ export default function CharacterBuilder() {
               </div>
             )}
 
+            {/* Navigation */}
             <div className="flex justify-between mt-8 pt-4 border-t border-border">
-              <Button variant="outline" onClick={goPrev} disabled={stepIndex === 0}>
-                <ArrowLeft className="w-4 h-4 mr-1" />Previous
+              <Button
+                variant="outline"
+                onClick={goPrev}
+                disabled={stepIndex === 0}
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Previous
               </Button>
+              
               {currentStep === 'summary' ? (
-                <Button onClick={handleSave} disabled={!canProceed() || isSaving}>
-                  {isSaving ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Saving...</> : <><Save className="w-4 h-4 mr-1" />Save Character</>}
+                <Button
+                  onClick={handleSave}
+                  disabled={!canProceed() || isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-1" />
+                      Save Character
+                    </>
+                  )}
                 </Button>
               ) : (
-                <Button onClick={goNext} disabled={!canProceed()}>Next<ArrowRight className="w-4 h-4 ml-1" /></Button>
+                <Button
+                  onClick={goNext}
+                  disabled={!canProceed()}
+                >
+                  Next
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
               )}
             </div>
           </div>
 
+          {/* Preview Sidebar */}
           <div className="space-y-4">
             <Card className="sticky top-24">
               <CardHeader>
-                <CardTitle className="text-sm flex items-center gap-2"><User className="w-4 h-4" />Character Preview</CardTitle>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Character Preview
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {previewImage ? (
-                  <img src={previewImage} alt="Character preview" className="w-full aspect-square object-cover rounded-lg border" />
+                  <img
+                    src={previewImage}
+                    alt="Character preview"
+                    className="w-full aspect-square object-cover rounded-lg border"
+                  />
                 ) : (
                   <div className="w-full aspect-square rounded-lg border bg-muted flex items-center justify-center">
                     <div className="text-center text-muted-foreground">
@@ -460,13 +828,39 @@ export default function CharacterBuilder() {
                     </div>
                   </div>
                 )}
-                <Button onClick={generatePreview} disabled={!selectedRace || !selectedClass || isGeneratingPreview} className="w-full mt-4" variant="outline">
-                  {isGeneratingPreview ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Generating...</> : <><Wand2 className="w-4 h-4 mr-1" />Generate Preview</>}
+                
+                <Button
+                  onClick={generatePreview}
+                  disabled={!selectedRace || !selectedClass || isGeneratingPreview}
+                  className="w-full mt-4"
+                  variant="outline"
+                >
+                  {isGeneratingPreview ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-4 h-4 mr-1" />
+                      Generate Preview
+                    </>
+                  )}
                 </Button>
+
+                {/* Quick Info */}
                 {(selectedRace || selectedClass) && (
                   <div className="mt-4 pt-4 border-t border-border space-y-2 text-xs">
-                    {selectedRace && <Badge variant="outline">{selectedRace.name}</Badge>}
-                    {selectedClass && <Badge variant="outline">{selectedClass.name}</Badge>}
+                    {selectedRace && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{selectedRace.name}</Badge>
+                      </div>
+                    )}
+                    {selectedClass && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{selectedClass.name}</Badge>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
