@@ -94,7 +94,7 @@ const provisionals: ProvisionalFiling[] = [
   },
 ];
 
-export default function PatentsPage() {
+export default function Patents() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-5xl mx-auto px-4 py-12">

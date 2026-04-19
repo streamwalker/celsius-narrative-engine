@@ -1,58 +1,49 @@
-import { Link } from "react-router-dom";
-import {
-  FileText,
-  Library,
-  Users,
-  Rocket,
-  Film,
-  Sparkles,
-  ArrowRight,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { LegalFooter } from "@/components/LegalFooter";
+import { Link } from 'react-router-dom';
+import { FileText, Library, Users, Rocket, Film, Feather, Sparkles, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const TOOLS = [
   {
-    href: "/script-formatter",
+    href: '/script-formatter',
     icon: FileText,
-    name: "Script Formatter",
-    desc: "Convert freeform prose into graphic novel scripts, TV screenplays, feature films, or stage plays.",
-    status: "live",
+    name: 'Script Formatter',
+    desc: 'Convert freeform prose into graphic novel scripts, TV screenplays, feature films, or stage plays.',
+    status: 'live',
   },
   {
-    href: "/narrative-engine",
+    href: '/narrative-engine',
     icon: Sparkles,
-    name: "Narrative Engine",
-    desc: "Plan story arcs, emotional beats, and scene structure with AI assistance.",
-    status: "phase-2",
+    name: 'Narrative Engine',
+    desc: 'Plan story arcs, emotional beats, and scene structure with AI assistance.',
+    status: 'phase-2',
   },
   {
-    href: "/character-builder",
+    href: '/character-builder',
     icon: Users,
-    name: "Character Builder",
-    desc: "Craft characters with archetypes, appearances, backstories, and relationship maps.",
-    status: "phase-2",
+    name: 'Character Builder',
+    desc: 'Craft characters with archetypes, appearances, backstories, and relationship maps.',
+    status: 'phase-2',
   },
   {
-    href: "/library",
+    href: '/library',
     icon: Library,
-    name: "Library",
-    desc: "All your saved scripts, drafts, and versions in one place.",
-    status: "live",
+    name: 'Library',
+    desc: 'All your saved scripts, drafts, and versions in one place.',
+    status: 'live',
   },
   {
-    href: "/astralnaut-studios",
+    href: '/astralnaut-studios',
     icon: Rocket,
-    name: "Astralnaut Studios",
-    desc: "Children of Aquarius, Battlefield: Atlantis, Darker Ages, and more.",
-    status: "phase-2",
+    name: 'Astralnaut Studios',
+    desc: 'Children of Aquarius, Battlefield: Atlantis, Darker Ages, and more.',
+    status: 'phase-2',
   },
   {
-    href: "/film-school",
+    href: '/film-school',
     icon: Film,
-    name: "Film School",
-    desc: "Study craft through annotated breakdowns of screenwriting fundamentals.",
-    status: "phase-2",
+    name: 'Film School',
+    desc: 'Study craft through annotated breakdowns of screenwriting fundamentals.',
+    status: 'phase-2',
   },
 ];
 
@@ -60,7 +51,7 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
-      <section className="star-field relative overflow-hidden">
+      <div className="star-field relative overflow-hidden">
         <div className="hero-gradient absolute inset-0" />
         <div className="relative max-w-5xl mx-auto px-4 py-20 md:py-32">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-primary mb-4 animate-slide-up">
@@ -82,25 +73,27 @@ export default function Index() {
               </Button>
             </Link>
             <Link to="/library">
-              <Button size="lg" variant="outline">My Library</Button>
+              <Button size="lg" variant="outline">
+                My Library
+              </Button>
             </Link>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Tools grid */}
-      <section className="max-w-6xl mx-auto px-4 py-16">
+      <div className="max-w-6xl mx-auto px-4 py-16">
         <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">The Workshop</p>
         <h2 className="font-display text-3xl md:text-4xl tracking-wider mb-10">Tools</h2>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {TOOLS.map((tool) => {
             const Icon = tool.icon;
-            const isLive = tool.status === "live";
+            const isLive = tool.status === 'live';
             return (
               <Link
                 key={tool.href}
-                to={tool.href}
+                href={tool.href}
                 className="group relative rounded-lg border border-border bg-card p-6 border-glow transition-all hover:-translate-y-0.5"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -126,9 +119,28 @@ export default function Index() {
             );
           })}
         </div>
-      </section>
+      </div>
 
-      <LegalFooter />
+      {/* Footer */}
+      <footer className="border-t border-border mt-16">
+        <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="font-mono text-xs text-muted-foreground">Celsius © 2026 — Built on Next.js</p>
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <Link to="/terms" className="hover:text-foreground">
+              Terms
+            </Link>
+            <Link to="/privacy" className="hover:text-foreground">
+              Privacy
+            </Link>
+            <Link to="/cookies" className="hover:text-foreground">
+              Cookies
+            </Link>
+            <Link to="/compliance" className="hover:text-foreground">
+              Compliance
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, FileText, Plus, Trash2, Loader2, LogIn } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { formatTimeSince } from "@/hooks/useAutoSave";
-import type { User } from "@supabase/supabase-js";
+
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, FileText, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { formatTimeSince } from '@/hooks/useAutoSave';
+import type { User } from '@supabase/supabase-js';
 
 interface DraftRow {
   id: string;
@@ -17,13 +18,14 @@ interface DraftRow {
 }
 
 const FORMAT_LABELS: Record<string, string> = {
-  "graphic-novel": "Graphic Novel",
-  television: "Television",
-  "feature-film": "Feature Film",
-  "stage-play": "Stage Play",
+  'graphic-novel': 'Graphic Novel',
+  television: 'Television',
+  'feature-film': 'Feature Film',
+  'stage-play': 'Stage Play',
 };
 
-export default function LibraryPage() {
+export default function Library() {
+  const supabase = supabase;
   const [user, setUser] = useState<User | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ export default function LibraryPage() {
     } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (!user) {
@@ -43,36 +45,25 @@ export default function LibraryPage() {
     }
     setLoading(true);
     supabase
-      .from("script_drafts")
-      .select("id,title,version_label,format,updated_at")
-      .eq("user_id", user.id)
-      .order("updated_at", { ascending: false })
+      .from('script_drafts')
+      .select('id,title,version_label,format,updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
       .then(({ data, error }) => {
         if (!error && data) setDrafts(data);
         setLoading(false);
       });
-  }, [user]);
+  }, [user, supabase]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this draft permanently?")) return;
-    const { error } = await supabase.from("script_drafts").delete().eq("id", id);
+    if (!confirm('Delete this draft permanently?')) return;
+    const { error } = await supabase.from('script_drafts').delete().eq('id', id);
     if (error) {
-      toast.error("Delete failed", { description: error.message });
+      toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
       return;
     }
     setDrafts((d) => d.filter((row) => row.id !== id));
-    toast.success("Draft deleted");
-  };
-
-  const handleSignIn = async () => {
-    const email = prompt("Enter your email to sign in (we'll send a magic link):");
-    if (!email) return;
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin + "/library" },
-    });
-    if (error) toast.error("Sign-in failed", { description: error.message });
-    else toast.success("Check your email", { description: "A magic sign-in link is on its way." });
+    toast({ title: 'Draft deleted' });
   };
 
   return (
@@ -85,10 +76,7 @@ export default function LibraryPage() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div>
-              <p className="font-mono text-xs uppercase tracking-widest text-primary">° LIBRARY</p>
-              <h1 className="font-display text-2xl tracking-wider">Library</h1>
-            </div>
+            <h1 className="font-display text-2xl tracking-wider">Library</h1>
           </div>
           <Link to="/script-formatter">
             <Button size="sm">
@@ -105,9 +93,6 @@ export default function LibraryPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground mb-4">Sign in to view your saved drafts.</p>
-              <Button onClick={handleSignIn}>
-                <LogIn className="h-4 w-4 mr-1" /> Sign in
-              </Button>
             </CardContent>
           </Card>
         ) : drafts.length === 0 ? (
