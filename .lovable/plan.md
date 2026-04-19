@@ -1,10 +1,26 @@
 
-Two requests in one message:
-1. Set up verified sender domain for auth emails
-2. Unzip celsius-next_3.zip and incorporate
+Same workflow as previous bundles (v1, v2, v3). Read-only mode — need approval to switch to default to extract and write files.
 
-For #1, I need to show the email setup dialog so the user can pick/configure a domain. After that, I'll scaffold auth email templates and deploy.
+## Plan: Incorporate `celsius-next_4.zip`
 
-For #2, same workflow as previous bundles: extract, diff against v2, port deltas. Requires default mode.
+### Step 1 — Extract & diff
+1. `lov-copy user-uploads://celsius-next_4.zip /tmp/celsius_v5.zip`
+2. Unzip to `/tmp/celsius_v5/`
+3. Diff against `/tmp/celsius_v4/` (last bundle, if still present) and current `src/` + `supabase/` to identify new/changed/removed files.
 
-Keep it concise.
+### Step 2 — Triage & port
+- **Assets** → `public/assets/` or `src/assets/`
+- **Pages/components** → port deltas, converting Next.js patterns (`next/link`, `next/image`, `'use client'`, `useRouter`) to React Router + `<img>`
+- **Edge functions** → mirror to `supabase/functions/` and deploy
+- **Migrations** → run only new ones
+- **Dependencies** → install any new npm packages
+
+### Step 3 — Wire & verify
+- Update `src/App.tsx` routes & `AppSidebar.tsx` entries as needed
+- Run `npx tsc --noEmit` to confirm clean build
+
+### Conflict policy
+**Merge intelligently** (same as v2/v3) — take new content/fields from upload, keep existing routing/imports/design-token wiring and any local fixes.
+
+### Reporting back
+Summary of: files added, files updated, new routes, new tables, new edge functions, new secrets needed (if any).
