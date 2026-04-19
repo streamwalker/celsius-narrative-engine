@@ -8,7 +8,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { LegalFooter } from "@/components/legal-footer";
+import { LegalFooter } from "@/components/LegalFooter";
 
 const tocSections = [
   { id: "getting-started", label: "Getting Started" },
