@@ -1,10 +1,10 @@
 
-Same workflow as v1–v5. Read-only mode, need approval to switch to default.
+Same workflow as v1–v6. Read-only mode — need approval to switch to default to extract and write files.
 
-## Plan: Incorporate `celsius-next_6.zip`
+## Plan: Incorporate `celsius-next_7.zip`
 
 ### Step 1 — Extract & diff
-1. Copy upload to `/tmp/celsius_v6.zip` and unzip to `/tmp/celsius_v6/`
+1. Copy upload to `/tmp/celsius_v7.zip` and unzip to `/tmp/celsius_v7/`
 2. Diff against current `src/` and `supabase/` to identify new/changed/removed files
 
 ### Step 2 — Triage & port
@@ -19,7 +19,7 @@ Same workflow as v1–v5. Read-only mode, need approval to switch to default.
 - Run `npx tsc --noEmit` and `vite build` to confirm clean build
 
 ### Conflict policy
-Merge intelligently — take new content/fields from upload, keep existing routing/imports/design-token wiring and prior local fixes (e.g. `LegalFooter` casing, `__scenes` story_data workaround).
+Merge intelligently — take new content/fields from upload, keep existing routing/imports/design-token wiring and prior local fixes (`LegalFooter` casing, `__scenes` story_data workaround, localStorage character library).
 
 ### Reporting back
 Summary of: files added, files updated, new routes, new tables, new edge functions, new secrets needed.
