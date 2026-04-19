@@ -81,7 +81,7 @@ export default function ScriptFormatter() {
     } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   // Import from Astralnaut Studios via localStorage shuttle
   useEffect(() => {
@@ -153,7 +153,7 @@ export default function ScriptFormatter() {
     };
 
     loadDraft();
-  }, [user, urlDraftId, supabase]);
+  }, [user, urlDraftId]);
 
   const handleNewScript = () => {
     setDraftId(null);
@@ -218,7 +218,7 @@ export default function ScriptFormatter() {
         setIsSaving(false);
       }
     },
-    [user, getCurrentState, draftId, supabase]
+    [user, getCurrentState, draftId]
   );
 
   // 20-second auto-save interval

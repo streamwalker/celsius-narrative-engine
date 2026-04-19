@@ -35,7 +35,7 @@ export default function Library() {
     } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -52,7 +52,7 @@ export default function Library() {
         if (!error && data) setDrafts(data);
         setLoading(false);
       });
-  }, [user, supabase]);
+  }, [user]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this draft permanently?')) return;
