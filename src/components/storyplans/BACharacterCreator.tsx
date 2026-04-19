@@ -1,4 +1,3 @@
-'use client';
 
 import { StoryCharacterRoster, type CharacterData } from "./story-character-roster";
 

@@ -1,7 +1,6 @@
-'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Wand2, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,7 +12,7 @@ interface PortToEngineButtonProps {
 }
 
 export function PortToEngineButton({ storyId }: PortToEngineButtonProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const mapping = getStoryPlanMapping(storyId);
   const [formatOpen, setFormatOpen] = useState(false);
 
@@ -24,7 +23,7 @@ export function PortToEngineButton({ storyId }: PortToEngineButtonProps) {
     localStorage.setItem('narrative-engine-import', JSON.stringify(mergedData));
     toast.success(`Porting "${mapping.title}" into Narrative Engine…`);
     setFormatOpen(false);
-    router.push('/narrative-engine');
+    navigate('/narrative-engine');
   };
 
   const handlePortToFormatter = () => {
@@ -33,7 +32,7 @@ export function PortToEngineButton({ storyId }: PortToEngineButtonProps) {
       JSON.stringify({ title: mapping.title, content: mapping.scriptText })
     );
     toast.success(`Porting "${mapping.title}" into Script Formatter…`);
-    router.push('/script-formatter');
+    navigate('/script-formatter');
   };
 
   return (

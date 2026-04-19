@@ -1,7 +1,6 @@
-'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+// next/image removed
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
