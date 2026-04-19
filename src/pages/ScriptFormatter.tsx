@@ -49,8 +49,6 @@ interface DraftState {
 export default function ScriptFormatter() {
   const { draftId: urlDraftId } = useParams<{ draftId?: string }>();
   const navigate = useNavigate();
-  const supabase = supabase;
-
   const [text, setText] = useState('');
   const [format, setFormat] = useState('graphic-novel');
   const [pageGoal, setPageGoal] = useState<number | null>(null);

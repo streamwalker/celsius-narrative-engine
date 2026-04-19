@@ -93,7 +93,7 @@ export default function Index() {
             return (
               <Link
                 key={tool.href}
-                href={tool.href}
+                to={tool.href}
                 className="group relative rounded-lg border border-border bg-card p-6 border-glow transition-all hover:-translate-y-0.5"
               >
                 <div className="flex items-start justify-between mb-4">

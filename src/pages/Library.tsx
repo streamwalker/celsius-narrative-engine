@@ -25,7 +25,6 @@ const FORMAT_LABELS: Record<string, string> = {
 };
 
 export default function Library() {
-  const supabase = supabase;
   const [user, setUser] = useState<User | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [loading, setLoading] = useState(true);

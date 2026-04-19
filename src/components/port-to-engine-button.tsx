@@ -38,7 +38,7 @@ export function PortToEngineButton({ storyId }: PortToEngineButtonProps) {
   return (
     <>
       <div className="flex flex-wrap gap-3">
-        <Button onClick={() => setFormatOpen(true)} variant="hero" size="default" className="gap-2">
+        <Button onClick={() => setFormatOpen(true)} variant="default" size="default" className="gap-2">
           <Wand2 className="h-4 w-4" />
           Port into Narrative Engine
         </Button>
