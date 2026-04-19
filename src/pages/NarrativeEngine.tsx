@@ -134,11 +134,15 @@ export default function NarrativeEngine() {
       .select('*')
       .order('updated_at', { ascending: false });
     if (!error && rows) {
-      setProjects(rows.map(r => ({
-        ...r,
-        story_data: (r.story_data as Record<string, string>) || {},
-        scene_data: r.scene_data ?? null,
-      })));
+      setProjects(rows.map(r => {
+        const sd = (r.story_data as Record<string, any>) || {};
+        const { __scenes, ...storyFields } = sd;
+        return {
+          ...r,
+          story_data: storyFields as Record<string, string>,
+          scene_data: __scenes ?? null,
+        };
+      }) as any);
     }
   };
 
