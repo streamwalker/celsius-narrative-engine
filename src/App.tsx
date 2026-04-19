@@ -39,6 +39,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/script-formatter" element={<ScriptFormatter />} />
+            <Route path="/script-formatter/:draftId" element={<ScriptFormatter />} />
             <Route path="/library" element={<Library />} />
             <Route path="/narrative-engine" element={<NarrativeEngine />} />
             <Route path="/narrative-engine/guide" element={<NarrativeEngineGuide />} />
