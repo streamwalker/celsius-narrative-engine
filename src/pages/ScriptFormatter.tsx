@@ -472,7 +472,18 @@ export default function ScriptFormatter() {
 
         {/* Output */}
         {result && (
-          <FormattedScriptViewer result={result} format={format} onCopy={handleCopy} onDownload={handleDownload} />
+          <>
+            {format === 'graphic-novel' && draftId && (
+              <div className="flex justify-end mb-3">
+                <Link to={`/comic-panels/${draftId}`}>
+                  <Button variant="hero" size="sm">
+                    Generate Comic Panels →
+                  </Button>
+                </Link>
+              </div>
+            )}
+            <FormattedScriptViewer result={result} format={format} onCopy={handleCopy} onDownload={handleDownload} />
+          </>
         )}
       </div>
 
