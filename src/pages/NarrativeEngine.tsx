@@ -134,11 +134,15 @@ export default function NarrativeEngine() {
       .select('*')
       .order('updated_at', { ascending: false });
     if (!error && rows) {
-      setProjects(rows.map(r => ({
-        ...r,
-        story_data: (r.story_data as Record<string, string>) || {},
-        scene_data: r.scene_data ?? null,
-      })));
+      setProjects(rows.map(r => {
+        const sd = (r.story_data as Record<string, any>) || {};
+        const { __scenes, ...storyFields } = sd;
+        return {
+          ...r,
+          story_data: storyFields as Record<string, string>,
+          scene_data: __scenes ?? null,
+        };
+      }) as any);
     }
   };
 
@@ -165,12 +169,15 @@ export default function NarrativeEngine() {
 
     setIsSaving(true);
     try {
+      const storyDataPayload = {
+        ...data,
+        __scenes: engineScenes.length > 0 ? engineScenes : null,
+      } as any;
       if (currentProjectId) {
         const { error } = await supabase
           .from('story_projects')
           .update({
-            story_data: data as any,
-            scene_data: engineScenes.length > 0 ? (engineScenes as any) : null,
+            story_data: storyDataPayload,
             title: data.protag_name ? `${data.protag_name}'s Story` : 'Untitled Story',
           })
           .eq('id', currentProjectId);
@@ -180,12 +187,11 @@ export default function NarrativeEngine() {
         const title = data.protag_name ? `${data.protag_name}'s Story` : 'Untitled Story';
         const { data: row, error } = await supabase
           .from('story_projects')
-          .insert({
+          .insert([{
             user_id: user.id,
             title,
-            story_data: data as any,
-            scene_data: engineScenes.length > 0 ? (engineScenes as any) : null,
-          })
+            story_data: storyDataPayload,
+          }])
           .select()
           .single();
         if (error) throw error;
