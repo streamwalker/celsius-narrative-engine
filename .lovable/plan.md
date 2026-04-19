@@ -1,12 +1,12 @@
 
-Same workflow as previous bundles (v1, v2, v3). Read-only mode — need approval to switch to default to extract and write files.
+Same workflow as previous bundles (v1–v4). Read-only mode — need approval to switch to default to extract and write files.
 
-## Plan: Incorporate `celsius-next_4.zip`
+## Plan: Incorporate `celsius-next_5.zip`
 
 ### Step 1 — Extract & diff
-1. `lov-copy user-uploads://celsius-next_4.zip /tmp/celsius_v5.zip`
-2. Unzip to `/tmp/celsius_v5/`
-3. Diff against `/tmp/celsius_v4/` (last bundle, if still present) and current `src/` + `supabase/` to identify new/changed/removed files.
+1. `lov-copy user-uploads://celsius-next_5.zip /tmp/celsius_v6.zip`
+2. Unzip to `/tmp/celsius_v6/`
+3. Diff against `/tmp/celsius_v5/` (last bundle, if still present) and current `src/` + `supabase/` to identify new/changed/removed files.
 
 ### Step 2 — Triage & port
 - **Assets** → `public/assets/` or `src/assets/`
@@ -20,7 +20,7 @@ Same workflow as previous bundles (v1, v2, v3). Read-only mode — need approval
 - Run `npx tsc --noEmit` to confirm clean build
 
 ### Conflict policy
-**Merge intelligently** (same as v2/v3) — take new content/fields from upload, keep existing routing/imports/design-token wiring and any local fixes.
+**Merge intelligently** (same as v2–v4) — take new content/fields from upload, keep existing routing/imports/design-token wiring and any local fixes.
 
 ### Reporting back
 Summary of: files added, files updated, new routes, new tables, new edge functions, new secrets needed (if any).
