@@ -1,18 +1,22 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, FileText, LogIn, FilePlus, Target } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Loader2, FileText, LogIn, FilePlus, Target, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { AutoSaveIndicator } from '@/components/AutoSaveIndicator';
 import { FormattedScriptViewer } from '@/components/FormattedScriptViewer';
+import { AuthModal } from '@/components/AuthModal';
+import {
+  useScriptFormatterShortcuts,
+  SCRIPT_FORMATTER_SHORTCUTS,
+} from '@/hooks/useScriptFormatterShortcuts';
 import type { User } from '@supabase/supabase-js';
 
 const FORMATS = [
@@ -49,6 +53,7 @@ interface DraftState {
 export default function ScriptFormatter() {
   const { draftId: urlDraftId } = useParams<{ draftId?: string }>();
   const navigate = useNavigate();
+
   const [text, setText] = useState('');
   const [format, setFormat] = useState('graphic-novel');
   const [pageGoal, setPageGoal] = useState<number | null>(null);
@@ -65,6 +70,10 @@ export default function ScriptFormatter() {
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
   const [saveError, setSaveError] = useState<Error | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const [authOpen, setAuthOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [undoSnapshot, setUndoSnapshot] = useState<{ text: string; result: string } | null>(null);
 
   const lastSavedRef = useRef<string>('');
   const saveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -156,6 +165,7 @@ export default function ScriptFormatter() {
   }, [user, urlDraftId]);
 
   const handleNewScript = () => {
+    setUndoSnapshot({ text, result });
     setDraftId(null);
     setTitle('Untitled Script');
     setVersionLabel('v1');
@@ -166,6 +176,21 @@ export default function ScriptFormatter() {
     setLastSaveTime(null);
     setHasUnsavedChanges(false);
     navigate('/script-formatter');
+  };
+
+  const handleClearText = () => {
+    if (!text.trim() && !result) return;
+    setUndoSnapshot({ text, result });
+    setText('');
+    setResult('');
+  };
+
+  const handleUndoDestructive = () => {
+    if (!undoSnapshot) return;
+    setText(undoSnapshot.text);
+    setResult(undoSnapshot.result);
+    setUndoSnapshot(null);
+    toast({ title: 'Restored', description: 'Your previous text has been recovered.' });
   };
 
   // Detect unsaved changes
@@ -267,6 +292,17 @@ export default function ScriptFormatter() {
     URL.revokeObjectURL(url);
   };
 
+  // Keyboard shortcuts
+  useScriptFormatterShortcuts({
+    onSave: user ? () => performSave(true) : () => setAuthOpen(true),
+    onFormat: () => {
+      if (!loading && text.trim()) handleGenerate();
+    },
+    onNewScript: handleNewScript,
+    onClearText: handleClearText,
+    onShowHelp: () => setHelpOpen(true),
+  });
+
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
   const currentPages = Math.max(1, Math.round(wordCount / 250));
   const progress = pageGoal ? Math.min(100, Math.round((wordCount / (pageGoal * 250)) * 100)) : 0;
@@ -286,6 +322,15 @@ export default function ScriptFormatter() {
             <span className="text-sm text-muted-foreground hidden sm:inline">Script Formatter</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setHelpOpen(true)}
+              className="h-8 w-8"
+              title="Keyboard shortcuts (?)"
+            >
+              <Keyboard className="h-4 w-4" />
+            </Button>
             {user && (
               <Button variant="outline" size="sm" onClick={handleNewScript}>
                 <FilePlus className="h-4 w-4 mr-1" /> New Script
@@ -300,9 +345,9 @@ export default function ScriptFormatter() {
                 onSaveNow={() => performSave(true)}
               />
             ) : (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <LogIn className="h-3 w-3" /> Sign in to save
-              </span>
+              <Button variant="outline" size="sm" onClick={() => setAuthOpen(true)}>
+                <LogIn className="h-3 w-3 mr-1" /> Sign in to save
+              </Button>
             )}
           </div>
         </div>
@@ -403,15 +448,13 @@ export default function ScriptFormatter() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {undoSnapshot && (
+              <Button variant="outline" size="sm" onClick={handleUndoDestructive} title="Restore previous text">
+                Undo
+              </Button>
+            )}
             {text.trim() && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setText('');
-                  setResult('');
-                }}
-              >
+              <Button variant="outline" size="sm" onClick={handleClearText}>
                 Clear
               </Button>
             )}
@@ -432,6 +475,34 @@ export default function ScriptFormatter() {
           <FormattedScriptViewer result={result} format={format} onCopy={handleCopy} onDownload={handleDownload} />
         )}
       </div>
+
+      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
+
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display tracking-wider">Keyboard Shortcuts</DialogTitle>
+            <DialogDescription>Speed up your work in the Script Formatter.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {SCRIPT_FORMATTER_SHORTCUTS.map((s) => (
+              <div key={s.label} className="flex items-center justify-between text-sm">
+                <span className="text-foreground/90">{s.label}</span>
+                <div className="flex items-center gap-1">
+                  {s.keys.map((k) => (
+                    <kbd
+                      key={k}
+                      className="font-mono text-[10px] uppercase tracking-wider rounded border border-border bg-muted px-1.5 py-0.5 text-muted-foreground"
+                    >
+                      {k}
+                    </kbd>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

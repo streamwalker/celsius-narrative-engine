@@ -1,12 +1,12 @@
-
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, FileText, Plus, Trash2, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileText, Plus, Trash2, Loader2, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { formatTimeSince } from '@/hooks/useAutoSave';
+import { AuthModal } from '@/components/AuthModal';
 import type { User } from '@supabase/supabase-js';
 
 interface DraftRow {
@@ -28,6 +28,7 @@ export default function Library() {
   const [user, setUser] = useState<User | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
     const {
@@ -92,6 +93,9 @@ export default function Library() {
           <Card>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground mb-4">Sign in to view your saved drafts.</p>
+              <Button onClick={() => setAuthOpen(true)}>
+                <LogIn className="h-4 w-4 mr-1" /> Sign In
+              </Button>
             </CardContent>
           </Card>
         ) : drafts.length === 0 ? (
@@ -135,6 +139,8 @@ export default function Library() {
           </div>
         )}
       </div>
+
+      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
     </div>
   );
 }
