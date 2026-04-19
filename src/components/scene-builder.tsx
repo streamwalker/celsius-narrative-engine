@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useUndoableState } from '@/hooks/use-undoable-state';
+import { useUndoableState } from '@/hooks/useUndoableState';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
