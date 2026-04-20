@@ -1,10 +1,10 @@
 
-Same workflow as v1–v6. Read-only mode — need approval to switch to default to extract and write files.
+Same workflow as v1–v7. Read-only mode — need approval to switch to default to extract and write files.
 
-## Plan: Incorporate `celsius-next_7.zip`
+## Plan: Incorporate `celsius-next_8.zip`
 
 ### Step 1 — Extract & diff
-1. Copy upload to `/tmp/celsius_v7.zip` and unzip to `/tmp/celsius_v7/`
+1. Copy upload to `/tmp/celsius_v8.zip` and unzip to `/tmp/celsius_v8/`
 2. Diff against current `src/` and `supabase/` to identify new/changed/removed files
 
 ### Step 2 — Triage & port
