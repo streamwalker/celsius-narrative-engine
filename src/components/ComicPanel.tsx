@@ -58,6 +58,17 @@ export function ComicPanel({
               Regenerate
             </Button>
           )}
+          {imageUrl && (
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => setConsistencyOpen(true)}
+              className="bg-background/80 backdrop-blur-sm hover:bg-background h-7 w-7"
+              title="Check character consistency"
+            >
+              <ShieldCheck className="w-3 h-3" />
+            </Button>
+          )}
           {imageUrl && onDownload && (
             <Button
               variant="secondary"
