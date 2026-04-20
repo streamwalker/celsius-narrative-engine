@@ -20,7 +20,9 @@ import {
   CheckCircle,
   AlertTriangle,
   X,
-  Loader2
+  Loader2,
+  Sparkles,
+  Image as ImageIcon
 } from 'lucide-react';
 import { 
   parseCharacterData, 
@@ -29,6 +31,7 @@ import {
   getRaceForImport,
   getClassForImport
 } from '@/lib/character-importers';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CharacterImportDialogProps {
@@ -38,13 +41,75 @@ interface CharacterImportDialogProps {
 
 export function CharacterImportDialog({ onImport, trigger }: CharacterImportDialogProps) {
   const [open, setOpen] = useState(false);
-  const [importTab, setImportTab] = useState<'file' | 'paste' | 'url'>('file');
+  const [importTab, setImportTab] = useState<'file' | 'paste' | 'url' | 'analyze'>('file');
   const [pasteContent, setPasteContent] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [selectedCharacters, setSelectedCharacters] = useState<Set<number>>(new Set());
+  const [analyzeImage, setAnalyzeImage] = useState<string | null>(null);
+  const [analyzeFilename, setAnalyzeFilename] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const analyzeInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAnalyzeFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAnalyzeFilename(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => setAnalyzeImage(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!analyzeImage) {
+      toast.error('Upload a character reference image first');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-character', {
+        body: { image: analyzeImage, filenameHint: analyzeFilename },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const a = data?.analysis;
+      if (!a) throw new Error('No analysis returned');
+
+      const character: ImportedCharacter = {
+        name: a.suggestedName || 'CHARACTER',
+        race: 'human',
+        class: 'fighter',
+        stats: {},
+        equipment: [],
+        backstory: [
+          a.physicalDescription && `Appearance: ${a.physicalDescription}`,
+          a.clothing && `Clothing: ${a.clothing}`,
+          a.distinguishingFeatures && `Distinguishing features: ${a.distinguishingFeatures}`,
+          a.colorPalette && `Color palette: ${a.colorPalette}`,
+          a.estimatedAge && `Apparent age: ${a.estimatedAge}`,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        source: 'manual',
+      };
+
+      const importResult: ImportResult = {
+        success: true,
+        characters: [character],
+        errors: [],
+        warnings: a.confidence === 'low' ? ['AI confidence was low — please review and edit fields.'] : [],
+      };
+      setResult(importResult);
+      setSelectedCharacters(new Set([0]));
+      toast.success('Character analyzed');
+    } catch (e: any) {
+      toast.error(e.message || 'Analysis failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,6 +196,8 @@ export function CharacterImportDialog({ onImport, trigger }: CharacterImportDial
     setPasteContent('');
     setUrlInput('');
     setSelectedCharacters(new Set());
+    setAnalyzeImage(null);
+    setAnalyzeFilename('');
   };
 
   return (
@@ -159,15 +226,19 @@ export function CharacterImportDialog({ onImport, trigger }: CharacterImportDial
             <TabsList className="w-full">
               <TabsTrigger value="file" className="flex-1 gap-2">
                 <FileJson className="w-4 h-4" />
-                File Upload
+                File
               </TabsTrigger>
               <TabsTrigger value="paste" className="flex-1 gap-2">
                 <FileSpreadsheet className="w-4 h-4" />
-                Paste Data
+                Paste
               </TabsTrigger>
               <TabsTrigger value="url" className="flex-1 gap-2">
                 <Globe className="w-4 h-4" />
-                From URL
+                URL
+              </TabsTrigger>
+              <TabsTrigger value="analyze" className="flex-1 gap-2">
+                <Sparkles className="w-4 h-4" />
+                AI Image
               </TabsTrigger>
             </TabsList>
 
@@ -247,6 +318,59 @@ export function CharacterImportDialog({ onImport, trigger }: CharacterImportDial
                 {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Fetch Character
               </Button>
+            </TabsContent>
+
+            <TabsContent value="analyze" className="space-y-4 mt-4">
+              <div
+                className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                onClick={() => analyzeInputRef.current?.click()}
+              >
+                <input
+                  ref={analyzeInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAnalyzeFileSelect}
+                  className="hidden"
+                />
+                {analyzeImage ? (
+                  <img
+                    src={analyzeImage}
+                    alt="Reference"
+                    className="max-h-40 mx-auto rounded"
+                  />
+                ) : (
+                  <>
+                    <ImageIcon className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Upload a character reference image
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      AI will extract name, description, clothing, and features
+                    </p>
+                  </>
+                )}
+              </div>
+              {analyzeFilename && (
+                <p className="text-xs text-muted-foreground text-center font-mono">
+                  {analyzeFilename}
+                </p>
+              )}
+              <Button
+                onClick={handleAnalyzeImage}
+                disabled={!analyzeImage || isLoading}
+                className="w-full gap-2"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                Analyze with AI
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Uses AI vision to auto-fill character details from a reference image. Results land
+                in the review list — you can edit before importing.
+              </p>
             </TabsContent>
           </Tabs>
         ) : (

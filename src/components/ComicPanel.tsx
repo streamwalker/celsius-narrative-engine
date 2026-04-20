@@ -1,6 +1,8 @@
-import { RefreshCw, Loader2, Download } from 'lucide-react';
+import { useState } from 'react';
+import { RefreshCw, Loader2, Download, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ConsistencyCheckDialog } from '@/components/ConsistencyCheckDialog';
 import type { ComicPanelData } from '@/lib/comic-panel-parser';
 
 interface ComicPanelProps {
@@ -25,6 +27,8 @@ export function ComicPanel({
   className,
   emphasis,
 }: ComicPanelProps) {
+  const [consistencyOpen, setConsistencyOpen] = useState(false);
+
   return (
     <div
       className={cn(
@@ -52,6 +56,17 @@ export function ComicPanel({
             >
               <RefreshCw className="w-3 h-3 mr-1" />
               Regenerate
+            </Button>
+          )}
+          {imageUrl && (
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => setConsistencyOpen(true)}
+              className="bg-background/80 backdrop-blur-sm hover:bg-background h-7 w-7"
+              title="Check character consistency"
+            >
+              <ShieldCheck className="w-3 h-3" />
             </Button>
           )}
           {imageUrl && onDownload && (
@@ -136,6 +151,15 @@ export function ComicPanel({
         <div className="absolute bottom-2 right-2 z-20 font-mono text-[9px] uppercase tracking-widest bg-background/80 backdrop-blur-sm px-1.5 py-0.5 rounded">
           {emphasis === 'cliffhanger' ? '🔥 Cliffhanger' : '⚡ Reveal'}
         </div>
+      )}
+
+      {imageUrl && (
+        <ConsistencyCheckDialog
+          open={consistencyOpen}
+          onOpenChange={setConsistencyOpen}
+          panelImage={imageUrl}
+          panelLabel={panel.panelKey}
+        />
       )}
     </div>
   );
