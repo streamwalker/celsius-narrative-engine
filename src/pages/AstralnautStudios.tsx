@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import StoryNotesSearch from "@/components/story-notes-search";
 import { storyPlanMappings } from "@/lib/story-plan-data";
 const battlefieldAtlantisLogo = "/assets/battlefield-atlantis-logo.jpg";
+const darkerAgesLogo = "/assets/darker-ages-logo.png";
+const episode7Logo = "/assets/episode-7-logo.png";
+const childrenOfAquariusLogo = "/assets/children-of-aquarius-logo.png";
 
 const allSections = [
   // Battlefield: Atlantis
