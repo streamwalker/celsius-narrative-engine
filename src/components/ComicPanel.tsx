@@ -1,6 +1,8 @@
-import { RefreshCw, Loader2, Download } from 'lucide-react';
+import { useState } from 'react';
+import { RefreshCw, Loader2, Download, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ConsistencyCheckDialog } from '@/components/ConsistencyCheckDialog';
 import type { ComicPanelData } from '@/lib/comic-panel-parser';
 
 interface ComicPanelProps {
