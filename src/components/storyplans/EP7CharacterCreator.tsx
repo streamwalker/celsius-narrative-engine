@@ -14,7 +14,7 @@ const PORTRAIT_DESCRIPTIONS: Record<string, string> = {
   sith_pupil: "Dark hooded figure in black Sith robes with unstable, crackling energy — mix of light and dark Force power. Scarred face partially visible under hood. Former Jedi turned dark. Dangerous and unbalanced.",
 };
 
-const DEFAULT_CHARACTERS: CharacterData[] = [
+export const DEFAULT_CHARACTERS: CharacterData[] = [
   {
     id: "xan", name: "Xan", title: "Chief of Security / Jedi Knight", species: "Human", classRole: "Jedi Knight",
     abilities: ["Force Sensitivity", "Combat Training", "Force Balance"],

@@ -40,7 +40,7 @@ const PORTRAIT_DESCRIPTIONS: Record<string, string> = {
     "Tall, gaunt humanoid figure with subtly inhuman features — narrow vertical pupils, pale gray skin, elongated fingers. Wears an immaculate black suit. The Draconian alien who gave the order on 9/11.",
 };
 
-const DEFAULT_CHARACTERS: CharacterData[] = [
+export const DEFAULT_CHARACTERS: CharacterData[] = [
   {
     id: "michael",
     name: "Michael",
