@@ -317,6 +317,59 @@ export function CharacterImportDialog({ onImport, trigger }: CharacterImportDial
                 Fetch Character
               </Button>
             </TabsContent>
+
+            <TabsContent value="analyze" className="space-y-4 mt-4">
+              <div
+                className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                onClick={() => analyzeInputRef.current?.click()}
+              >
+                <input
+                  ref={analyzeInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAnalyzeFileSelect}
+                  className="hidden"
+                />
+                {analyzeImage ? (
+                  <img
+                    src={analyzeImage}
+                    alt="Reference"
+                    className="max-h-40 mx-auto rounded"
+                  />
+                ) : (
+                  <>
+                    <ImageIcon className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Upload a character reference image
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      AI will extract name, description, clothing, and features
+                    </p>
+                  </>
+                )}
+              </div>
+              {analyzeFilename && (
+                <p className="text-xs text-muted-foreground text-center font-mono">
+                  {analyzeFilename}
+                </p>
+              )}
+              <Button
+                onClick={handleAnalyzeImage}
+                disabled={!analyzeImage || isLoading}
+                className="w-full gap-2"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                Analyze with AI
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Uses AI vision to auto-fill character details from a reference image. Results land
+                in the review list — you can edit before importing.
+              </p>
+            </TabsContent>
           </Tabs>
         ) : (
           <div className="space-y-4">
