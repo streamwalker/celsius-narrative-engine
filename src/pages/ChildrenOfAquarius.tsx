@@ -9,6 +9,7 @@ import StoryNotesSearch from "@/components/story-notes-search";
 import ChildrenOfAquariusStoryPlan from "@/components/storyplans/ChildrenOfAquariusStoryPlan";
 import CoAIssueOneScript from "@/components/storyplans/CoAIssueOneScript";
 import CoAIssueTwoScript from "@/components/storyplans/CoAIssueTwoScript";
+import CoACharacterCreator from "@/components/storyplans/CoACharacterCreator";
 
 const sections = [
   { id: "coa-page-1", label: "Page 1 — Historical Timeline (1775–2020)" },
@@ -36,6 +37,7 @@ const sections = [
   { id: "coa-issue-1", label: 'Issue One: "Trinity" — Script' },
   { id: "coa-issue-2", label: 'Issue Two — Working Script' },
   { id: "coa-story-plan", label: "Story Plan — Three-Act / Eight-Sequence Breakdown" },
+  { id: "coa-character-creator", label: "Character Creator — Trinity & Consortium Cast" },
 ];
 
 const pageContent: Record<string, string> = {
@@ -64,6 +66,7 @@ const pageContent: Record<string, string> = {
   "coa-issue-1": "Issue One Trinity Script Michael birth 9/11 WTC Maria Gil firefighter Father Blaire Simon Ryoko Monarch teleport rooftop miracle school shooting Lila Stacy Jeff resurrection Detective Sepulveda healed wound Lexington 1775 Edmund Burke sniper Pearl Harbor Randall Burke Carter Burke Rell Tambular Draconian Nine schism Final Eight Ryoko extraction missile RPG Annie Dubinski",
   "coa-issue-2": "Issue Two Working Script Alara Ark Revelation Pope Benedict Revelation Protocols seven seals Michael Ryoko telekinetic shield Gil Laura Consortium shock troops junction portal Sunderson Berelli FBI Cassandra Blaire Stacy morgue resurrection Burke DNA Carter Burke Consortium mothership alien stasis pod Cassandra Heralds Aquarian Age gravitational disruptor telekinesis air duct elevator shaft Cassandra Sunderson tactical armor",
   "coa-story-plan": "Story Plan three act eight sequence Dude Problem Superhero Burke Renault Illuminati Consortium Trinity Children Aquarius Michael Blaire Ryoko Simon Edmund catalyst midpoint climax Age Aquarius",
+  "coa-character-creator": "Character Creator Trinity Michael Ryoko Simon Father Blaire Edmund Burke Carter Burke Franco Renault Theresa Burke Marcus Christ Child Cassandra Sunderson Gil Dubinski Rell Tambular Draconian Consortium roster cast portraits stats abilities equipment backstory",
 };
 
 export default function ChildrenOfAquarius() {
@@ -988,6 +991,13 @@ Simon was the First Conduit, Ryoko was the Second Conduit. Father Blaire tells M
 
         {/* Story Plan */}
         {visibleIds.has("coa-story-plan") && <ChildrenOfAquariusStoryPlan />}
+
+        {/* Character Creator */}
+        {visibleIds.has("coa-character-creator") && (
+          <PageSection id="coa-character-creator" title="Character Creator — Trinity & Consortium Cast">
+            <CoACharacterCreator />
+          </PageSection>
+        )}
       </main>
     </div>
   );
