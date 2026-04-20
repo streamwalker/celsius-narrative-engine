@@ -41,15 +41,75 @@ interface CharacterImportDialogProps {
 
 export function CharacterImportDialog({ onImport, trigger }: CharacterImportDialogProps) {
   const [open, setOpen] = useState(false);
-  const [importTab, setImportTab] = useState<'file' | 'paste' | 'url'>('file');
+  const [importTab, setImportTab] = useState<'file' | 'paste' | 'url' | 'analyze'>('file');
   const [pasteContent, setPasteContent] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [selectedCharacters, setSelectedCharacters] = useState<Set<number>>(new Set());
+  const [analyzeImage, setAnalyzeImage] = useState<string | null>(null);
+  const [analyzeFilename, setAnalyzeFilename] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const analyzeInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAnalyzeFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAnalyzeFilename(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => setAnalyzeImage(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!analyzeImage) {
+      toast.error('Upload a character reference image first');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-character', {
+        body: { image: analyzeImage, filenameHint: analyzeFilename },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const a = data?.analysis;
+      if (!a) throw new Error('No analysis returned');
+
+      const character: ImportedCharacter = {
+        name: a.suggestedName || 'CHARACTER',
+        race: 'human',
+        class: 'fighter',
+        stats: {},
+        equipment: [],
+        backstory: [
+          a.physicalDescription && `Appearance: ${a.physicalDescription}`,
+          a.clothing && `Clothing: ${a.clothing}`,
+          a.distinguishingFeatures && `Distinguishing features: ${a.distinguishingFeatures}`,
+          a.colorPalette && `Color palette: ${a.colorPalette}`,
+          a.estimatedAge && `Apparent age: ${a.estimatedAge}`,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        source: 'manual',
+      };
+
+      const importResult: ImportResult = {
+        success: true,
+        characters: [character],
+        errors: [],
+        warnings: a.confidence === 'low' ? ['AI confidence was low — please review and edit fields.'] : [],
+      };
+      setResult(importResult);
+      setSelectedCharacters(new Set([0]));
+      toast.success('Character analyzed');
+    } catch (e: any) {
+      toast.error(e.message || 'Analysis failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
     const file = e.target.files?.[0];
     if (!file) return;
 
