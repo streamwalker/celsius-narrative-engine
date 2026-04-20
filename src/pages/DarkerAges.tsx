@@ -12,6 +12,7 @@ import StoryNotesSearch from "@/components/story-notes-search";
 import DarkerAgesStoryPlan from "@/components/storyplans/DarkerAgesStoryPlan";
 import DACharacterCreator from "@/components/storyplans/DACharacterCreator";
 import DarkerAgesManuscript from "@/components/storyplans/DarkerAgesManuscript";
+import darkerAgesLogo from "@/assets/darker-ages-logo.png";
 
 const darkerAgesSections = [
   { id: "da-page-1", label: "Page 1 — Backstory: Corbin Rothchylde & Estelle" },
@@ -91,9 +92,11 @@ export default function DarkerAges() {
               </Button>
             </Link>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-comic tracking-[0.1em] text-glow text-primary mb-2">
-            Darker Ages
-          </h1>
+          <img
+            src={darkerAgesLogo}
+            alt="Darker Ages"
+            className="mx-auto max-w-md w-full h-auto mb-2"
+          />
           <p className="text-sm text-muted-foreground mb-4">Raw Story Notes — 19 Pages</p>
           <PortToEngineButton storyId="darker-ages" />
         </div>

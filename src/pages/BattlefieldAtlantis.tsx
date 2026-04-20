@@ -20,6 +20,7 @@ import NotebookTranscript001B from "@/components/storyplans/NotebookTranscript00
 import NotebookTranscript002A from "@/components/storyplans/NotebookTranscript002A";
 import NotebookTranscript002B from "@/components/storyplans/NotebookTranscript002B";
 import NotebookTranscript003 from "@/components/storyplans/NotebookTranscript003";
+import battlefieldAtlantisLogo from "@/assets/battlefield-atlantis-logo.jpeg";
 
 const sections = [
   { id: "page-1", label: "Page 1 — World & Character Lists" },
@@ -158,9 +159,11 @@ export default function BattlefieldAtlantis() {
               </Button>
             </Link>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-comic tracking-[0.1em] text-glow text-primary mb-2">
-            Battlefield: Atlantis
-          </h1>
+          <img
+            src={battlefieldAtlantisLogo}
+            alt="Battlefield: Atlantis"
+            className="mx-auto max-w-md w-full h-auto mb-2"
+          />
           <p className="text-sm text-muted-foreground mb-4">Raw Story Notes — 40 Pages + 4 Script Archives + 4 Notebook Transcripts + Character Creator</p>
           <PortToEngineButton storyId="battlefield-atlantis" />
         </div>
