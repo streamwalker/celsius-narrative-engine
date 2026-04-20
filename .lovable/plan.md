@@ -1,21 +1,33 @@
 
 
-## Plan: Replace text titles with logo images
+## Plan: Logo images for CoA & Episode 7 pages
 
-### Step 1 — Add assets
-Copy the two uploaded images into `src/assets/`:
-- `user-uploads://IMG_4075.jpeg` → `src/assets/battlefield-atlantis-logo.jpeg`
-- `user-uploads://93FD5E5B-96BA-410E-84BA-FBC917D16F50.png` → `src/assets/darker-ages-logo.png`
+The user wants visual consistency across all four storyplan pages. BA and Darker Ages already use logo images; CoA and Episode 7 still use text titles.
 
-### Step 2 — Wire into pages
-- **`src/pages/BattlefieldAtlantis.tsx`**: import the logo, replace the H1 text "Battlefield: Atlantis" (or equivalent hero title) with an `<img>` using the imported asset. Keep the original heading text in `alt` for a11y/SEO. Constrain with `max-w-` + `mx-auto` so it scales on mobile.
-- **`src/pages/DarkerAges.tsx`**: same treatment with the Darker Ages logo.
+### Issue
+No logos have been uploaded for these two pages. I need source images before I can wire them in.
 
-### Step 3 — Verify
-Confirm both pages render the logo where the text title was, with no layout breakage on the 1050px viewport or mobile.
+### Options
 
-### Notes
-- Need to view both page files first to find the exact title element and surrounding layout (subtitle, badges, buttons).
-- Use ES6 imports from `@/assets/...` per project convention.
-- Keep any existing subtitle / metadata directly under the new logo image.
+**Option A — User uploads logos (recommended)**
+User provides two images (one for CoA, one for EP7), I copy them to `src/assets/`, import them into `ChildrenOfAquarius.tsx` and `Episode7.tsx`, and replace the `<h1>` text with `<img>` tags using the same pattern as BA/Darker Ages:
+```tsx
+<img src={logo} alt="Children of Aquarius" className="mx-auto max-w-md w-full h-auto mb-2" />
+```
+
+**Option B — Generate placeholder logos via AI**
+Use Lovable AI image generation (`google/gemini-3-pro-image-preview`) to create stylized logo treatments matching each storyplan's tone (cosmic/aquatic for CoA, sci-fi/military for EP7). User can swap them out later.
+
+**Option C — Stylized text treatment**
+Skip raster logos entirely; build CSS-styled text "logos" with custom fonts, glow, and layout that visually match the weight of the BA/DA image logos. No new assets needed.
+
+### My recommendation
+**Option A.** The BA and Darker Ages logos are clearly hand-crafted artwork — auto-generated images won't match that quality, and CSS text won't match that visual weight. Best to wait for real artwork.
+
+### Action needed
+Please either:
+1. Upload the two logo images (PNG or JPEG), or
+2. Tell me to proceed with Option B or C.
+
+Once I have the assets (or your go-ahead on B/C), the wiring itself is ~10 lines per page and mirrors the BA/DA pattern exactly.
 
