@@ -20,7 +20,9 @@ import {
   CheckCircle,
   AlertTriangle,
   X,
-  Loader2
+  Loader2,
+  Sparkles,
+  Image as ImageIcon
 } from 'lucide-react';
 import { 
   parseCharacterData, 
@@ -29,6 +31,7 @@ import {
   getRaceForImport,
   getClassForImport
 } from '@/lib/character-importers';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CharacterImportDialogProps {
