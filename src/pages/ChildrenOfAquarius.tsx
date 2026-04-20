@@ -10,6 +10,7 @@ import ChildrenOfAquariusStoryPlan from "@/components/storyplans/ChildrenOfAquar
 import CoAIssueOneScript from "@/components/storyplans/CoAIssueOneScript";
 import CoAIssueTwoScript from "@/components/storyplans/CoAIssueTwoScript";
 import CoACharacterCreator from "@/components/storyplans/CoACharacterCreator";
+import childrenOfAquariusLogo from "@/assets/children-of-aquarius-logo.png";
 
 const sections = [
   { id: "coa-character-creator", label: "Character Creator — Trinity & Consortium Cast" },
@@ -96,9 +97,11 @@ export default function ChildrenOfAquarius() {
               </Button>
             </Link>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-comic tracking-[0.1em] text-glow text-primary mb-2">
-            Children of Aquarius
-          </h1>
+          <img
+            src={childrenOfAquariusLogo}
+            alt="Children of Aquarius"
+            className="mx-auto max-w-md w-full h-auto mb-2"
+          />
           <p className="text-sm text-muted-foreground mb-4">Raw Story Notes — 22 Pages + 2 Script Archives + Story Plan</p>
           <PortToEngineButton storyId="children-of-aquarius" />
         </div>

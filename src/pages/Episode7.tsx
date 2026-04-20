@@ -8,6 +8,7 @@ import { PageSection, Pre, Heading } from "@/components/story-page-helpers";
 import StoryNotesSearch from "@/components/story-notes-search";
 import Episode7StoryPlan from "@/components/storyplans/Episode7StoryPlan";
 import EP7CharacterCreator from "@/components/storyplans/EP7CharacterCreator";
+import episode7Logo from "@/assets/episode-7-logo.png";
 
 const episode7Sections = [
   { id: "ep7-page-1", label: "Page 1 — Concept: 30 Years After Endor" },
@@ -61,9 +62,11 @@ const AstralonautEpisode7 = () => {
               </Button>
             </Link>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-comic tracking-[0.1em] text-glow text-primary mb-2">
-            Episode 7 (2011)
-          </h1>
+          <img
+            src={episode7Logo}
+            alt="Episode 7 (2011)"
+            className="mx-auto max-w-md w-full h-auto mb-2"
+          />
           <p className="text-sm text-muted-foreground mb-4">Raw Story Notes — 7 Pages</p>
           <PortToEngineButton storyId="episode-7" />
         </div>
