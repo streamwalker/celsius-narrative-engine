@@ -1,5 +1,6 @@
 
-import { StoryCharacterRoster, type CharacterData } from "./story-character-roster";
+
+import StoryCharacterCreator, { type CharacterData } from "@/components/story-character-creator";
 
 const baZeus = "/assets/ba-zeus.jpg";
 const baGroup = "/assets/ba-group.jpg";
@@ -86,5 +87,18 @@ const DEFAULT_CHARACTERS: CharacterData[] = [
 ];
 
 export default function BACharacterCreator() {
-  return <StoryCharacterRoster storyTitle="Battlefield: Atlantis" characters={DEFAULT_CHARACTERS} />;
+  return (
+    <StoryCharacterCreator
+      storyTitle="Battlefield: Atlantis"
+      storageKey="ba-character-creator"
+      defaultCharacters={DEFAULT_CHARACTERS}
+      speciesOptions={SPECIES_OPTIONS}
+      classOptions={CLASS_OPTIONS}
+      portraitDescriptions={CHARACTERS_NEEDING_PORTRAITS}
+      headerImage={baGroup}
+      profileImage={baProfiles}
+      characterCount={8}
+      clothingCategories={["Futuristic", "Military", "Formal"]}
+    />
+  );
 }

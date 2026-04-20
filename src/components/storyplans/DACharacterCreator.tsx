@@ -1,5 +1,6 @@
 
-import { StoryCharacterRoster, type CharacterData } from "./story-character-roster";
+
+import StoryCharacterCreator, { type CharacterData } from "@/components/story-character-creator";
 
 const SPECIES_OPTIONS = ["Human", "Human (Ancient)", "Human (Transforming)", "Human (Extra-Dimensional)", "Human (Time Traveler)", "Unknown", "Spirit"];
 const CLASS_OPTIONS = ["Sorcerer", "Mystic", "Warrior", "Archmage", "Noble", "Dark Priest", "Knight", "Time Mage", "Ninja"];
@@ -101,5 +102,16 @@ const DEFAULT_CHARACTERS: CharacterData[] = [
 ];
 
 export default function DACharacterCreator() {
-  return <StoryCharacterRoster storyTitle="Darker Ages" characters={DEFAULT_CHARACTERS} />;
+  return (
+    <StoryCharacterCreator
+      storyTitle="Darker Ages"
+      storageKey="da-character-creator"
+      defaultCharacters={DEFAULT_CHARACTERS}
+      speciesOptions={SPECIES_OPTIONS}
+      classOptions={CLASS_OPTIONS}
+      portraitDescriptions={PORTRAIT_DESCRIPTIONS}
+      characterCount={10}
+      clothingCategories={["Medieval", "Ancient", "Steampunk", "Ninja"]}
+    />
+  );
 }
