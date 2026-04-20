@@ -1,25 +1,30 @@
 
-Same workflow as v1–v7. Read-only mode — need approval to switch to default to extract and write files.
 
-## Plan: Incorporate `celsius-next_8.zip`
+## Recommendation: **(a) Wire them in**
 
-### Step 1 — Extract & diff
-1. Copy upload to `/tmp/celsius_v8.zip` and unzip to `/tmp/celsius_v8/`
-2. Diff against current `src/` and `supabase/` to identify new/changed/removed files
+Both functions are already built, tested-quality code that solve real problems your app has. Deleting them throws away working AI infrastructure; wiring them costs ~1 small UI change each.
 
-### Step 2 — Triage & port
-- **Assets** → `src/assets/` (imported) or `public/assets/` (static)
-- **Pages/components** → port deltas, converting Next.js patterns (`'use client'`, `next/link`, `next/image`, `useRouter`) to React Router + `<img>`
-- **Edge functions** → mirror to `supabase/functions/` and deploy
-- **Migrations** → run only new ones via migration tool
-- **Dependencies** → install any new npm packages
+### Why wire, not delete
 
-### Step 3 — Wire & verify
-- Update `src/App.tsx` routes and `AppSidebar.tsx` entries as needed
-- Run `npx tsc --noEmit` and `vite build` to confirm clean build
+**`analyze-character`** — Takes a reference image, returns structured character data (name, physical description, clothing, distinguishing features, color palette, age, confidence). This is a perfect fit for `character-import-dialog.tsx` and `character-profile-editor.tsx`, which already handle character image uploads but require the user to type every field manually. One button ("Auto-fill from image") removes 5 minutes of data entry per character.
 
-### Conflict policy
-Merge intelligently — take new content/fields from upload, keep existing routing/imports/design-token wiring and prior local fixes (`LegalFooter` casing, `__scenes` story_data workaround, localStorage character library).
+**`check-consistency`** — Takes a generated panel + reference images, returns per-character match scores and specific inconsistencies ("hair color wrong", "missing scar"). This is exactly the QA gap in `ComicPanel.tsx` / `ComicPanels.tsx` — right now there's no way to know if a generated panel actually matches the character refs. This function closes that loop.
 
-### Reporting back
-Summary of: files added, files updated, new routes, new tables, new edge functions, new secrets needed.
+**Codebase fit** — You already have `character-consistency-model.ts`, `character-importers.ts`, and a whole reference-image pipeline (`generate-character-reference`). These two functions complete that system rather than duplicating it.
+
+**Cost of deleting** — You lose ~400 lines of working edge function code plus the LLM prompts (which are non-trivial to rewrite). If you ever want either feature later, it's a much bigger lift to recreate from scratch than to wire up now.
+
+**Cost of wiring** — One button + one result panel per function. Maybe 150 lines of UI total.
+
+### If you want to wire them, the plan would be
+
+1. **`analyze-character`** → Add "Auto-fill from image" button to `character-import-dialog.tsx`. On click: send the uploaded image, populate name/description/clothing/features fields with the result, let user edit before saving.
+
+2. **`check-consistency`** → Add "Check consistency" button to `ComicPanel.tsx` panel actions. On click: send the panel image + selected character reference images, show a result drawer with overall score, per-character match scores, and a list of specific issues.
+
+### When deleting would make sense
+
+Only if you've decided the Character Builder is feature-frozen and you're optimizing for a minimal backend surface (fewer functions to maintain, audit, monitor). Given you just *added* the CoA creator and are actively expanding the character system, that's clearly not the case.
+
+**My vote: wire them.** Want me to proceed with the wiring plan above?
+
