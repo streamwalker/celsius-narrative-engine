@@ -152,6 +152,15 @@ export function ComicPanel({
           {emphasis === 'cliffhanger' ? '🔥 Cliffhanger' : '⚡ Reveal'}
         </div>
       )}
+
+      {imageUrl && (
+        <ConsistencyCheckDialog
+          open={consistencyOpen}
+          onOpenChange={setConsistencyOpen}
+          panelImage={imageUrl}
+          panelLabel={panel.panelKey}
+        />
+      )}
     </div>
   );
 }
