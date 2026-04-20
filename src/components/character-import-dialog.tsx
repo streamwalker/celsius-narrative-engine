@@ -196,6 +196,8 @@ export function CharacterImportDialog({ onImport, trigger }: CharacterImportDial
     setPasteContent('');
     setUrlInput('');
     setSelectedCharacters(new Set());
+    setAnalyzeImage(null);
+    setAnalyzeFilename('');
   };
 
   return (
