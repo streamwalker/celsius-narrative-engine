@@ -233,8 +233,8 @@ export default function AstralnautStudios() {
             <Link to="/astralnaut-studios/darker-ages" className="group">
               <div className="glass-panel border-glow rounded-xl p-8 h-full transition-all">
                 <div className="flex items-center gap-4 mb-5">
-                  <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-accent" />
+                  <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
+                    <img src={darkerAgesLogo} alt="Darker Ages logo" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-comic tracking-wider text-accent group-hover:text-primary transition-colors">
