@@ -12,6 +12,7 @@ import CoAIssueTwoScript from "@/components/storyplans/CoAIssueTwoScript";
 import CoACharacterCreator from "@/components/storyplans/CoACharacterCreator";
 
 const sections = [
+  { id: "coa-character-creator", label: "Character Creator — Trinity & Consortium Cast" },
   { id: "coa-page-1", label: "Page 1 — Historical Timeline (1775–2020)" },
   { id: "coa-page-2", label: "Page 2 — Act 1–2: Edmund's Wedding & Civil War 2" },
   { id: "coa-page-3", label: "Page 3 — Act 3 & Epilogue: Renault's Revelation" },
@@ -37,7 +38,6 @@ const sections = [
   { id: "coa-issue-1", label: 'Issue One: "Trinity" — Script' },
   { id: "coa-issue-2", label: 'Issue Two — Working Script' },
   { id: "coa-story-plan", label: "Story Plan — Three-Act / Eight-Sequence Breakdown" },
-  { id: "coa-character-creator", label: "Character Creator — Trinity & Consortium Cast" },
 ];
 
 const pageContent: Record<string, string> = {
@@ -121,6 +121,13 @@ export default function ChildrenOfAquarius() {
             </nav>
           </div>
         </div>
+
+        {/* Character Creator (pinned to top) */}
+        {visibleIds.has("coa-character-creator") && (
+          <PageSection id="coa-character-creator" title="Character Creator — Trinity & Consortium Cast">
+            <CoACharacterCreator />
+          </PageSection>
+        )}
 
         {/* Page 1 — Historical Timeline */}
         {visibleIds.has("coa-page-1") && (
@@ -991,13 +998,6 @@ Simon was the First Conduit, Ryoko was the Second Conduit. Father Blaire tells M
 
         {/* Story Plan */}
         {visibleIds.has("coa-story-plan") && <ChildrenOfAquariusStoryPlan />}
-
-        {/* Character Creator */}
-        {visibleIds.has("coa-character-creator") && (
-          <PageSection id="coa-character-creator" title="Character Creator — Trinity & Consortium Cast">
-            <CoACharacterCreator />
-          </PageSection>
-        )}
       </main>
     </div>
   );
