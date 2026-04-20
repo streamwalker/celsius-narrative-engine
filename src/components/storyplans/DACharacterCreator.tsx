@@ -18,7 +18,7 @@ const PORTRAIT_DESCRIPTIONS: Record<string, string> = {
   christian: "Handsome man in dark robes with an air of quiet authority. Estelle's lover and co-ruler. Warm but intense expression. Faint magical aura suggesting immense power. Dark fantasy mage aesthetic.",
 };
 
-const DEFAULT_CHARACTERS: CharacterData[] = [
+export const DEFAULT_CHARACTERS: CharacterData[] = [
   {
     id: "maven", name: "Maven", title: "The Phoenix — Daughter of the Dark Queen", species: "Human", classRole: "Sorcerer",
     abilities: ["Hidden Magic", "Elemental Control", "Raw Blunt Force Magic", "Phoenix Transformation"],

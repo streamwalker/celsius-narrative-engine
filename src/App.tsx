@@ -19,6 +19,7 @@ import ChildrenOfAquarius from "./pages/ChildrenOfAquarius";
 import BattlefieldAtlantis from "./pages/BattlefieldAtlantis";
 import DarkerAges from "./pages/DarkerAges";
 import Episode7 from "./pages/Episode7";
+import CrossStoryCast from "./pages/CrossStoryCast";
 import Shakespeare from "./pages/Shakespeare";
 import FilmSchool from "./pages/FilmSchool";
 import Terms from "./pages/legal/Terms";
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="/astralnaut-studios/battlefield-atlantis" element={<BattlefieldAtlantis />} />
             <Route path="/astralnaut-studios/darker-ages" element={<DarkerAges />} />
             <Route path="/astralnaut-studios/episode-7" element={<Episode7 />} />
+            <Route path="/astralnaut-studios/cross-story-cast" element={<CrossStoryCast />} />
             <Route path="/shakespeare" element={<Shakespeare />} />
             <Route path="/film-school" element={<FilmSchool />} />
             <Route path="/terms" element={<Terms />} />

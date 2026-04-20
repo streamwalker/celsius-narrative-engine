@@ -19,7 +19,7 @@ const CHARACTERS_NEEDING_PORTRAITS: Record<string, string> = {
   rhea: "Blonde woman with intense glowing blue eyes, wearing dark blue military uniform and armor. Strong commanding presence. Queen of Alympia and Captain of the starship Ryuken. Dual-wielding swords.",
 };
 
-const DEFAULT_CHARACTERS: CharacterData[] = [
+export const DEFAULT_CHARACTERS: CharacterData[] = [
   {
     id: "zeus", name: "Zeus", title: "King of Alympia", species: "Alympian", classRole: "Ascended",
     abilities: ["Electricity", "Telepathy", "Bioelectric Tethering"],
