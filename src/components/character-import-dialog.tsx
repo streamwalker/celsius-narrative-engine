@@ -224,15 +224,19 @@ export function CharacterImportDialog({ onImport, trigger }: CharacterImportDial
             <TabsList className="w-full">
               <TabsTrigger value="file" className="flex-1 gap-2">
                 <FileJson className="w-4 h-4" />
-                File Upload
+                File
               </TabsTrigger>
               <TabsTrigger value="paste" className="flex-1 gap-2">
                 <FileSpreadsheet className="w-4 h-4" />
-                Paste Data
+                Paste
               </TabsTrigger>
               <TabsTrigger value="url" className="flex-1 gap-2">
                 <Globe className="w-4 h-4" />
-                From URL
+                URL
+              </TabsTrigger>
+              <TabsTrigger value="analyze" className="flex-1 gap-2">
+                <Sparkles className="w-4 h-4" />
+                AI Image
               </TabsTrigger>
             </TabsList>
 
