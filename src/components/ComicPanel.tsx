@@ -27,6 +27,8 @@ export function ComicPanel({
   className,
   emphasis,
 }: ComicPanelProps) {
+  const [consistencyOpen, setConsistencyOpen] = useState(false);
+
   return (
     <div
       className={cn(
