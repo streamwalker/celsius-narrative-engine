@@ -110,6 +110,8 @@ export function CharacterImportDialog({ onImport, trigger }: CharacterImportDial
       setIsLoading(false);
     }
   };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
