@@ -253,8 +253,8 @@ export default function AstralnautStudios() {
             <Link to="/astralnaut-studios/episode-7" className="group">
               <div className="glass-panel border-glow rounded-xl p-8 h-full transition-all">
                 <div className="flex items-center gap-4 mb-5">
-                  <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <Star className="w-6 h-6 text-accent" />
+                  <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
+                    <img src={episode7Logo} alt="Episode 7 logo" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-comic tracking-wider text-accent group-hover:text-primary transition-colors">
@@ -273,8 +273,8 @@ export default function AstralnautStudios() {
             <Link to="/astralnaut-studios/children-of-aquarius" className="group">
               <div className="glass-panel border-glow rounded-xl p-8 h-full transition-all">
                 <div className="flex items-center gap-4 mb-5">
-                  <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-accent" />
+                  <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center">
+                    <img src={childrenOfAquariusLogo} alt="Children of Aquarius logo" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-comic tracking-wider text-accent group-hover:text-primary transition-colors">
