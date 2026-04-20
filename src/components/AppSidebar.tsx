@@ -53,6 +53,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/astralnaut-studios/battlefield-atlantis", label: "Battlefield: Atlantis", icon: Rocket },
       { href: "/astralnaut-studios/darker-ages", label: "Darker Ages", icon: Rocket },
       { href: "/astralnaut-studios/episode-7", label: "Episode 7", icon: Rocket },
+      { href: "/astralnaut-studios/cross-story-cast", label: "Cross-Story Cast", icon: Users },
     ],
   },
   {
