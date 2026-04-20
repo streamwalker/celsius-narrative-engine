@@ -1,30 +1,21 @@
 
 
-## Recommendation: **(a) Wire them in**
+## Plan: Replace text titles with logo images
 
-Both functions are already built, tested-quality code that solve real problems your app has. Deleting them throws away working AI infrastructure; wiring them costs ~1 small UI change each.
+### Step 1 — Add assets
+Copy the two uploaded images into `src/assets/`:
+- `user-uploads://IMG_4075.jpeg` → `src/assets/battlefield-atlantis-logo.jpeg`
+- `user-uploads://93FD5E5B-96BA-410E-84BA-FBC917D16F50.png` → `src/assets/darker-ages-logo.png`
 
-### Why wire, not delete
+### Step 2 — Wire into pages
+- **`src/pages/BattlefieldAtlantis.tsx`**: import the logo, replace the H1 text "Battlefield: Atlantis" (or equivalent hero title) with an `<img>` using the imported asset. Keep the original heading text in `alt` for a11y/SEO. Constrain with `max-w-` + `mx-auto` so it scales on mobile.
+- **`src/pages/DarkerAges.tsx`**: same treatment with the Darker Ages logo.
 
-**`analyze-character`** — Takes a reference image, returns structured character data (name, physical description, clothing, distinguishing features, color palette, age, confidence). This is a perfect fit for `character-import-dialog.tsx` and `character-profile-editor.tsx`, which already handle character image uploads but require the user to type every field manually. One button ("Auto-fill from image") removes 5 minutes of data entry per character.
+### Step 3 — Verify
+Confirm both pages render the logo where the text title was, with no layout breakage on the 1050px viewport or mobile.
 
-**`check-consistency`** — Takes a generated panel + reference images, returns per-character match scores and specific inconsistencies ("hair color wrong", "missing scar"). This is exactly the QA gap in `ComicPanel.tsx` / `ComicPanels.tsx` — right now there's no way to know if a generated panel actually matches the character refs. This function closes that loop.
-
-**Codebase fit** — You already have `character-consistency-model.ts`, `character-importers.ts`, and a whole reference-image pipeline (`generate-character-reference`). These two functions complete that system rather than duplicating it.
-
-**Cost of deleting** — You lose ~400 lines of working edge function code plus the LLM prompts (which are non-trivial to rewrite). If you ever want either feature later, it's a much bigger lift to recreate from scratch than to wire up now.
-
-**Cost of wiring** — One button + one result panel per function. Maybe 150 lines of UI total.
-
-### If you want to wire them, the plan would be
-
-1. **`analyze-character`** → Add "Auto-fill from image" button to `character-import-dialog.tsx`. On click: send the uploaded image, populate name/description/clothing/features fields with the result, let user edit before saving.
-
-2. **`check-consistency`** → Add "Check consistency" button to `ComicPanel.tsx` panel actions. On click: send the panel image + selected character reference images, show a result drawer with overall score, per-character match scores, and a list of specific issues.
-
-### When deleting would make sense
-
-Only if you've decided the Character Builder is feature-frozen and you're optimizing for a minimal backend surface (fewer functions to maintain, audit, monitor). Given you just *added* the CoA creator and are actively expanding the character system, that's clearly not the case.
-
-**My vote: wire them.** Want me to proceed with the wiring plan above?
+### Notes
+- Need to view both page files first to find the exact title element and surrounding layout (subtitle, badges, buttons).
+- Use ES6 imports from `@/assets/...` per project convention.
+- Keep any existing subtitle / metadata directly under the new logo image.
 
