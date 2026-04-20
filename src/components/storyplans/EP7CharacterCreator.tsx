@@ -1,5 +1,6 @@
 
-import { StoryCharacterRoster, type CharacterData } from "./story-character-roster";
+
+import StoryCharacterCreator, { type CharacterData } from "@/components/story-character-creator";
 
 const SPECIES_OPTIONS = ["Human", "Human (Spirit)", "Unknown", "Droid"];
 const CLASS_OPTIONS = ["Jedi Knight", "Jedi Grand Master", "Commander", "General", "Smuggler", "Sith"];
@@ -65,5 +66,16 @@ const DEFAULT_CHARACTERS: CharacterData[] = [
 ];
 
 export default function EP7CharacterCreator() {
-  return <StoryCharacterRoster storyTitle="Episode 7" characters={DEFAULT_CHARACTERS} />;
+  return (
+    <StoryCharacterCreator
+      storyTitle="Episode 7"
+      storageKey="ep7-character-creator"
+      defaultCharacters={DEFAULT_CHARACTERS}
+      speciesOptions={SPECIES_OPTIONS}
+      classOptions={CLASS_OPTIONS}
+      portraitDescriptions={PORTRAIT_DESCRIPTIONS}
+      characterCount={6}
+      clothingCategories={["Futuristic", "Military", "Cyberpunk"]}
+    />
+  );
 }
