@@ -88,6 +88,129 @@ export function readingOrder(panels: CleanPanel[]): CleanPanel[] {
  * End-to-end cleanup: normalize → drop tiny / extreme aspect ratios → drop
  * boxes mostly covered by a larger sibling → re-sort into reading order.
  */
+export interface PanelsValidation {
+  ok: boolean;
+  /** High-level error code suitable for clients to switch on. */
+  code:
+    | 'ok'
+    | 'not_object'
+    | 'panels_missing'
+    | 'panels_not_array'
+    | 'panels_empty'
+    | 'all_panels_invalid';
+  message: string;
+  /** Per-panel issues for debugging (index → list of problems). */
+  issues: { index: number; problems: string[] }[];
+  /** How many raw entries were rejected by per-panel shape checks. */
+  rejected: number;
+}
+
+const NUM_KEYS: (keyof RawPanel)[] = ['x', 'y', 'w', 'h'];
+
+/**
+ * Strictly validate the shape of a parsed AI response BEFORE running cleanup.
+ * Returns a structured report so the edge function can surface a clear error
+ * to the client instead of silently returning `panels: []`.
+ */
+export function validatePanelsPayload(parsed: unknown): PanelsValidation {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return {
+      ok: false,
+      code: 'not_object',
+      message: 'Model response is not a JSON object.',
+      issues: [],
+      rejected: 0,
+    };
+  }
+  const obj = parsed as Record<string, unknown>;
+  if (!('panels' in obj)) {
+    return {
+      ok: false,
+      code: 'panels_missing',
+      message: 'Model response is missing the required `panels` field.',
+      issues: [],
+      rejected: 0,
+    };
+  }
+  if (!Array.isArray(obj.panels)) {
+    return {
+      ok: false,
+      code: 'panels_not_array',
+      message: '`panels` must be an array.',
+      issues: [],
+      rejected: 0,
+    };
+  }
+  const issues: { index: number; problems: string[] }[] = [];
+  let validCount = 0;
+  obj.panels.forEach((p, i) => {
+    const problems: string[] = [];
+    if (!p || typeof p !== 'object' || Array.isArray(p)) {
+      problems.push('not an object');
+    } else {
+      const pp = p as Record<string, unknown>;
+      for (const k of NUM_KEYS) {
+        const v = pp[k];
+        if (typeof v !== 'number' || !Number.isFinite(v)) {
+          problems.push(`\`${k}\` must be a finite number`);
+        } else if (v < 0 || v > 1) {
+          problems.push(`\`${k}\`=${v} out of range [0,1]`);
+        }
+      }
+      if (typeof pp.w === 'number' && pp.w <= 0) problems.push('`w` must be > 0');
+      if (typeof pp.h === 'number' && pp.h <= 0) problems.push('`h` must be > 0');
+      if (pp.speakers !== undefined && !Array.isArray(pp.speakers)) {
+        problems.push('`speakers` must be an array if provided');
+      } else if (Array.isArray(pp.speakers)) {
+        pp.speakers.forEach((s, si) => {
+          if (!s || typeof s !== 'object') {
+            problems.push(`speakers[${si}] not an object`);
+            return;
+          }
+          const ss = s as Record<string, unknown>;
+          if (typeof ss.name !== 'string' || !ss.name.trim()) {
+            problems.push(`speakers[${si}].name must be a non-empty string`);
+          }
+          for (const k of ['x', 'y'] as const) {
+            const v = ss[k];
+            if (typeof v !== 'number' || !Number.isFinite(v)) {
+              problems.push(`speakers[${si}].${k} must be a finite number`);
+            }
+          }
+        });
+      }
+    }
+    if (problems.length === 0) validCount++;
+    else issues.push({ index: i, problems });
+  });
+
+  if (obj.panels.length === 0) {
+    return {
+      ok: false,
+      code: 'panels_empty',
+      message: 'Model returned zero panels.',
+      issues,
+      rejected: 0,
+    };
+  }
+  if (validCount === 0) {
+    return {
+      ok: false,
+      code: 'all_panels_invalid',
+      message: `All ${obj.panels.length} panel(s) failed shape validation.`,
+      issues,
+      rejected: obj.panels.length,
+    };
+  }
+  return {
+    ok: true,
+    code: 'ok',
+    message: 'ok',
+    issues,
+    rejected: obj.panels.length - validCount,
+  };
+}
+
 export function cleanPanels(raw: RawPanel[]): CleanPanel[] {
   const mapped = (Array.isArray(raw) ? raw : []).map((p, i) =>
     normalizePanel(p, i + 1)

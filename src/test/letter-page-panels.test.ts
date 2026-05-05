@@ -5,6 +5,7 @@ import {
   normalizePanel,
   overlapFractionOfSmaller,
   readingOrder,
+  validatePanelsPayload,
   type CleanPanel,
 } from '../../supabase/functions/_shared/letter-page-panels';
 
@@ -144,5 +145,76 @@ describe('letter-page-panels helpers', () => {
     ]);
     expect(ordered.map((p) => p.x)).toEqual([0.0, 0.5]);
     expect(ordered.map((p) => p.index)).toEqual([1, 2]);
+  });
+});
+
+describe('letter-page-panels.validatePanelsPayload', () => {
+  it('rejects non-object payloads', () => {
+    expect(validatePanelsPayload(null).code).toBe('not_object');
+    expect(validatePanelsPayload('hello').code).toBe('not_object');
+    expect(validatePanelsPayload([]).code).toBe('not_object');
+  });
+
+  it('rejects missing or non-array panels', () => {
+    expect(validatePanelsPayload({}).code).toBe('panels_missing');
+    expect(validatePanelsPayload({ panels: 'oops' }).code).toBe('panels_not_array');
+  });
+
+  it('flags empty panels array', () => {
+    const r = validatePanelsPayload({ panels: [] });
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe('panels_empty');
+  });
+
+  it('reports per-panel issues for malformed entries but stays ok if some valid', () => {
+    const r = validatePanelsPayload({
+      panels: [
+        { x: 0.1, y: 0.1, w: 0.5, h: 0.5 },
+        { x: 'bad', y: 0.1, w: 0.5, h: 0.5 },
+        { x: 0.1, y: 0.1, w: 2, h: 0.5 },
+      ],
+    });
+    expect(r.ok).toBe(true);
+    expect(r.rejected).toBe(2);
+    expect(r.issues).toHaveLength(2);
+    expect(r.issues[0].problems.join(' ')).toMatch(/x.*finite number/);
+    expect(r.issues[1].problems.join(' ')).toMatch(/w.*out of range/);
+  });
+
+  it('fails when every panel is invalid', () => {
+    const r = validatePanelsPayload({
+      panels: [{ x: 'a', y: 'b', w: 'c', h: 'd' }, { foo: 'bar' }],
+    });
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe('all_panels_invalid');
+    expect(r.rejected).toBe(2);
+  });
+
+  it('validates speaker shapes', () => {
+    const r = validatePanelsPayload({
+      panels: [
+        {
+          x: 0.1,
+          y: 0.1,
+          w: 0.5,
+          h: 0.5,
+          speakers: [{ name: '', x: 0.2, y: 0.2 }, { name: 'Hero', x: 'nope', y: 0.3 }],
+        },
+      ],
+    });
+    expect(r.ok).toBe(false);
+    expect(r.code).toBe('all_panels_invalid');
+    expect(r.issues[0].problems.join(' ')).toMatch(/speakers\[0\].name/);
+    expect(r.issues[0].problems.join(' ')).toMatch(/speakers\[1\].x/);
+  });
+
+  it('passes a clean payload with no issues', () => {
+    const r = validatePanelsPayload({
+      panels: [{ index: 1, x: 0, y: 0, w: 1, h: 1, speakers: [] }],
+    });
+    expect(r.ok).toBe(true);
+    expect(r.code).toBe('ok');
+    expect(r.issues).toEqual([]);
+    expect(r.rejected).toBe(0);
   });
 });

@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { cleanPanels, type CleanPanel } from "../_shared/letter-page-panels.ts";
+import { cleanPanels, validatePanelsPayload, type CleanPanel } from "../_shared/letter-page-panels.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,13 +105,44 @@ serve(async (req) => {
       parsed = JSON.parse(cleaned);
     } catch {
       console.error("JSON parse failed:", cleaned.slice(0, 400));
-      return json({ error: "Model returned invalid JSON", raw: cleaned.slice(0, 400) }, 502);
+      return json(
+        {
+          error: "Model returned invalid JSON",
+          code: "invalid_json",
+          raw: cleaned.slice(0, 400),
+        },
+        502,
+      );
     }
 
-    const panelsRaw: any[] = Array.isArray(parsed?.panels) ? parsed.panels : [];
-    const panels: PanelOut[] = cleanPanels(panelsRaw);
+    const validation = validatePanelsPayload(parsed);
+    if (!validation.ok) {
+      console.error("Panels validation failed:", validation.code, validation.message, validation.issues.slice(0, 5));
+      return json(
+        {
+          error: validation.message,
+          code: validation.code,
+          issues: validation.issues.slice(0, 20),
+          raw: cleaned.slice(0, 400),
+        },
+        502,
+      );
+    }
 
-    return json({ panels });
+    const panels: PanelOut[] = cleanPanels((parsed as { panels: any[] }).panels);
+    if (panels.length === 0) {
+      return json(
+        {
+          error: "All detected panels were filtered out as too small, extreme aspect ratio, or duplicates.",
+          code: "all_panels_filtered",
+          rejected: validation.rejected,
+          issues: validation.issues.slice(0, 20),
+        },
+        422,
+      );
+    }
+
+    return json({ panels, warnings: validation.rejected > 0 ? { rejectedRawPanels: validation.rejected, issues: validation.issues.slice(0, 20) } : undefined });
   } catch (err) {
     console.error("letter-page-analyze error:", err);
     return json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
