@@ -69,6 +69,9 @@ export default function LetterPage() {
 
   const [editingPanels, setEditingPanels] = useState(false);
   const [showPanelDebug, setShowPanelDebug] = useState(false);
+  // Hover (transient) and click-pinned (sticky) panel highlight while debug overlay is on.
+  const [hoveredDebugPanel, setHoveredDebugPanel] = useState<number | null>(null);
+  const [pinnedDebugPanel, setPinnedDebugPanel] = useState<number | null>(null);
   const [snapToEdges, setSnapToEdges] = useState(true);
   const [gridDivisions, setGridDivisions] = useState(0); // 0 = off; e.g. 12 = 12-col grid
   const [zoom, setZoom] = useState(1);
@@ -1744,10 +1747,18 @@ ASTRA: "Too quiet."`}
                           source: 'mapped',
                         });
                       }
+                      const activeDebugPanel = showPanelDebug
+                        ? pinnedDebugPanel ?? hoveredDebugPanel
+                        : null;
+                      const isActive = activeDebugPanel === p.index;
+                      const isDimmed = activeDebugPanel != null && !isActive;
                       return (
                         <div
                           key={key}
-                          className="lp-bubble-overlay absolute"
+                          className={cn(
+                            'lp-bubble-overlay absolute transition-opacity duration-150',
+                            isDimmed && 'opacity-20',
+                          )}
                           style={{
                             left: `${p.x * 100}%`,
                             top: `${p.y * 100}%`,
@@ -1755,7 +1766,12 @@ ASTRA: "Too quiet."`}
                             height: `${p.h * 100}%`,
                           }}
                         >
-                          <div className="pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30" />
+                          <div
+                            className={cn(
+                              'pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30',
+                              isActive && 'ring-2 ring-emerald-400',
+                            )}
+                          />
                           <div className="absolute -top-5 left-0 font-mono text-[10px] text-primary/70">
                             Panel {p.index}
                           </div>
@@ -1817,25 +1833,57 @@ ASTRA: "Too quiet."`}
                     })}
                   {/* Cleaned panel boxes + reading-order indices (debug overlay) */}
                   {showPanelDebug &&
-                    panels.map((p) => (
-                      <div
-                        key={`debug_${p.index}`}
-                        className="pointer-events-none absolute z-20 border-2 border-emerald-400/90 bg-emerald-400/5"
-                        style={{
-                          left: `${p.x * 100}%`,
-                          top: `${p.y * 100}%`,
-                          width: `${p.w * 100}%`,
-                          height: `${p.h * 100}%`,
-                        }}
-                      >
-                        <div className="absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-br-md bg-emerald-500 font-mono text-sm font-bold text-white shadow">
-                          {p.index}
+                    panels.map((p) => {
+                      const isPinned = pinnedDebugPanel === p.index;
+                      const isHovered = hoveredDebugPanel === p.index;
+                      const isActive = isPinned || isHovered;
+                      return (
+                        <div
+                          key={`debug_${p.index}`}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={isPinned}
+                          aria-label={`Highlight panel ${p.index}`}
+                          onMouseEnter={() => setHoveredDebugPanel(p.index)}
+                          onMouseLeave={() =>
+                            setHoveredDebugPanel((cur) => (cur === p.index ? null : cur))
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPinnedDebugPanel((cur) => (cur === p.index ? null : p.index));
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setPinnedDebugPanel((cur) => (cur === p.index ? null : p.index));
+                            } else if (e.key === 'Escape') {
+                              setPinnedDebugPanel(null);
+                            }
+                          }}
+                          className={cn(
+                            'absolute z-20 cursor-pointer border-2 transition-colors',
+                            isActive
+                              ? 'border-emerald-300 bg-emerald-400/20 ring-2 ring-emerald-300/70'
+                              : 'border-emerald-400/90 bg-emerald-400/5 hover:bg-emerald-400/15',
+                            isPinned && 'shadow-[0_0_0_2px_hsl(var(--background))]',
+                          )}
+                          style={{
+                            left: `${p.x * 100}%`,
+                            top: `${p.y * 100}%`,
+                            width: `${p.w * 100}%`,
+                            height: `${p.h * 100}%`,
+                          }}
+                        >
+                          <div className="pointer-events-none absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-br-md bg-emerald-500 font-mono text-sm font-bold text-white shadow">
+                            {p.index}
+                          </div>
+                          <div className="pointer-events-none absolute bottom-0 right-0 rounded-tl-md bg-emerald-500/90 px-1.5 py-0.5 font-mono text-[9px] text-white">
+                            {(p.w * 100).toFixed(1)}×{(p.h * 100).toFixed(1)}%
+                            {isPinned ? ' · pinned' : ''}
+                          </div>
                         </div>
-                        <div className="absolute bottom-0 right-0 rounded-tl-md bg-emerald-500/90 px-1.5 py-0.5 font-mono text-[9px] text-white">
-                          {(p.w * 100).toFixed(1)}×{(p.h * 100).toFixed(1)}%
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   {/* Manual panel-box editor overlay */}
                   <PanelBoxEditor
                     panels={panelBoxes}
