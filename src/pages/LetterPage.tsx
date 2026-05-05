@@ -1513,12 +1513,13 @@ ASTRA: "Too quiet."`}
                   e.preventDefault();
                   const rect = viewportRef.current?.getBoundingClientRect();
                   if (!rect) return;
-                  const cx = e.clientX - rect.left;
-                  const cy = e.clientY - rect.top;
+                  const cx =
+                    zoomAnchor === 'cursor' ? e.clientX - rect.left : rect.width / 2;
+                  const cy =
+                    zoomAnchor === 'cursor' ? e.clientY - rect.top : rect.height / 2;
                   const factor = Math.exp(-e.deltaY * 0.0015);
                   setZoom((prev) => {
                     const next = Math.max(0.25, Math.min(4, prev * factor));
-                    // Adjust pan so the point under cursor stays put
                     setPan((p) => ({
                       x: cx - ((cx - p.x) * next) / prev,
                       y: cy - ((cy - p.y) * next) / prev,
