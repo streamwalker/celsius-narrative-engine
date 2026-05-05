@@ -217,6 +217,7 @@ export default function LetterPage() {
       for (const [k, v] of Object.entries(rawMap)) {
         normMap[k] = Array.isArray(v) ? v : [v];
       }
+      skipNextMapEffect.current = true;
       setSpeakerMap(normMap);
       setSpeakers(buildSpeakerRoster(
         Array.from(new Set((row.panels || []).flatMap((p) => p.speakers.map((s) => s.name))))
@@ -385,8 +386,21 @@ export default function LetterPage() {
         const available = Math.max(0.2, 0.96 - cursorY);
         const heightScale = totalHeight > available ? available / totalHeight : 1;
 
+        // Build a quick lookup of prior non-locked bubbles by (speakerId|text)
+        // so manual `tailTarget` overrides survive re-placement.
+        const priorOverrides = new Map<string, string>();
+        for (const b of prev) {
+          if (b.locked) continue;
+          if (!b.tailTarget) continue;
+          const k = `${b.speakerId ?? ''}::${b.text.trim()}`;
+          priorOverrides.set(k, b.tailTarget);
+        }
+
         remaining.forEach((dl, idx) => {
-          const head = resolveHead(dl.speaker);
+          const speakerId = dl.speaker ? speakerIdFromName(dl.speaker) : undefined;
+          const overrideKey = `${speakerId ?? ''}::${dl.text.trim()}`;
+          const carriedOverride = priorOverrides.get(overrideKey);
+          const head = resolveHead(dl.speaker, carriedOverride);
           const bw = Math.min(0.5, Math.max(0.28, dl.text.length / 70));
           const bh = estimateHeight(dl.text) * heightScale;
           let bx: number;
@@ -406,7 +420,8 @@ export default function LetterPage() {
             w: bw,
             h: bh,
             tail: head ? { x: head.x, y: head.y } : undefined,
-            speakerId: dl.speaker ? speakerIdFromName(dl.speaker) : undefined,
+            speakerId,
+            ...(carriedOverride ? { tailTarget: carriedOverride } : {}),
           };
           out.push(bubble);
           cursorY = by + bh + 0.02;
@@ -419,8 +434,15 @@ export default function LetterPage() {
     [allParsedPanels, bubblesByPanel]
   );
 
-  // Re-place bubbles whenever the user updates the speaker mapping
+  // Re-place bubbles whenever the user updates the speaker mapping.
+  // Skip exactly one run after loading a saved project so persisted
+  // bubbles (including tailTarget overrides) aren't immediately rewritten.
+  const skipNextMapEffect = useRef(false);
   useEffect(() => {
+    if (skipNextMapEffect.current) {
+      skipNextMapEffect.current = false;
+      return;
+    }
     if (panels.length > 0) placeBubbles(panels, speakerMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speakerMap]);
