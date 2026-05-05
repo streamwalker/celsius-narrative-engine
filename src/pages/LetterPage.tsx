@@ -217,6 +217,7 @@ export default function LetterPage() {
       for (const [k, v] of Object.entries(rawMap)) {
         normMap[k] = Array.isArray(v) ? v : [v];
       }
+      skipNextMapEffect.current = true;
       setSpeakerMap(normMap);
       setSpeakers(buildSpeakerRoster(
         Array.from(new Set((row.panels || []).flatMap((p) => p.speakers.map((s) => s.name))))
