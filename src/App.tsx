@@ -30,6 +30,7 @@ import Compliance from "./pages/legal/Compliance";
 import Dpa from "./pages/legal/Dpa";
 import AcceptableUse from "./pages/legal/AcceptableUse";
 import Patents from "./pages/legal/Patents";
+import AdminEmailLogs from "./pages/AdminEmailLogs";
 
 const queryClient = new QueryClient();
 
