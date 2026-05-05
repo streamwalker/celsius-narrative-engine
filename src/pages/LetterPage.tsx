@@ -70,6 +70,10 @@ export default function LetterPage() {
   const [editingPanels, setEditingPanels] = useState(false);
   const [snapToEdges, setSnapToEdges] = useState(true);
   const [gridDivisions, setGridDivisions] = useState(0); // 0 = off; e.g. 12 = 12-col grid
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panMode, setPanMode] = useState(false);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   // ---- Library / persistence ----
   const [user, setUser] = useState<User | null>(null);
