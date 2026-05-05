@@ -1455,9 +1455,39 @@ ASTRA: "Too quiet."`}
                     setZoom(1);
                     setPan({ x: 0, y: 0 });
                   }}
-                  title="Reset zoom & pan (fit)"
+                  title="Reset zoom & pan"
                 >
                   <Maximize2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2"
+                  onClick={() => {
+                    const vp = viewportRef.current;
+                    const content = exportRef.current;
+                    if (!vp || !content) return;
+                    const vpRect = vp.getBoundingClientRect();
+                    const cRect = content.getBoundingClientRect();
+                    // Un-transformed content size at zoom = 1
+                    const contentW = cRect.width / zoom;
+                    const contentH = cRect.height / zoom;
+                    if (contentW <= 0 || contentH <= 0) return;
+                    const padding = 16;
+                    const fit = Math.min(
+                      (vpRect.width - padding * 2) / contentW,
+                      (vpRect.height - padding * 2) / contentH
+                    );
+                    const next = Math.max(0.25, Math.min(4, +fit.toFixed(3)));
+                    setZoom(next);
+                    setPan({
+                      x: (vpRect.width - contentW * next) / 2,
+                      y: (vpRect.height - contentH * next) / 2,
+                    });
+                  }}
+                  title="Fit to view"
+                >
+                  Fit
                 </Button>
                 <Button
                   size="sm"
