@@ -17,6 +17,14 @@ import { BubbleShape } from './BubbleShape';
  * 0..1 against the panel container's measured size, so positions survive
  * resizes and exports.
  */
+export interface TailTargetOption {
+  /** Detected character name (matches DetectedPanel.speakers[].name) */
+  name: string;
+  /** Position normalized 0..1 within the panel */
+  x: number;
+  y: number;
+}
+
 export interface PanelBubbleEditorProps {
   imageUrl?: string;
   bubbles: PanelBubbleData[];
@@ -31,6 +39,8 @@ export interface PanelBubbleEditorProps {
   /** Aspect ratio of the panel container. Defaults to 4/3 to match ComicPanel. */
   aspectRatio?: number;
   className?: string;
+  /** Available detected characters whose head positions can target the tail. */
+  tailTargets?: TailTargetOption[];
 }
 
 type DragMode =
