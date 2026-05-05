@@ -243,9 +243,13 @@ export default function LetterPage() {
       const newBubbles: Record<string, PanelBubbleData[]> = {};
       detected.forEach((dp, i) => {
         const parsed = allParsedPanels[i]; // 1:1 by index
-        const out: PanelBubbleData[] = [];
+        const panelKey = `p_${dp.index}`;
+        const prev = bubblesByPanel[panelKey] ?? [];
+        const lockedBubbles = prev.filter((b) => b.locked);
+        const out: PanelBubbleData[] = [...lockedBubbles];
 
-        if (parsed?.narration?.trim()) {
+        const hasLockedCaption = lockedBubbles.some((b) => b.kind === 'caption');
+        if (parsed?.narration?.trim() && !hasLockedCaption) {
           out.push(createBubble('caption', { text: parsed.narration.trim() }));
         }
 
@@ -271,37 +275,37 @@ export default function LetterPage() {
 
         const dialogueLines = parsed?.dialogues ?? [];
 
-        // Estimate bubble height from text length so multiple lines fit nicely.
+        // Skip dialogue lines whose text already matches a locked bubble
+        const lockedTexts = new Set(
+          lockedBubbles.filter((b) => b.kind !== 'caption').map((b) => b.text.trim())
+        );
+        const remaining = dialogueLines.filter((dl) => !lockedTexts.has(dl.text.trim()));
+
         const estimateHeight = (text: string) => {
           const charsPerLine = 22;
           const approxLines = Math.max(1, Math.ceil(text.length / charsPerLine));
-          // 0.07 base + 0.045 per estimated text line, capped
           return Math.min(0.32, 0.07 + approxLines * 0.045);
         };
 
-        // Reserve top room if narration caption was placed
         const topReserve = parsed?.narration?.trim() ? 0.18 : 0.04;
         let cursorY = topReserve;
 
-        const totalHeight = dialogueLines.reduce(
+        const totalHeight = remaining.reduce(
           (acc, dl) => acc + estimateHeight(dl.text) + 0.02,
           0
         );
-        // If too tall, shrink each height proportionally to fit roughly within remaining space
         const available = Math.max(0.2, 0.96 - cursorY);
         const heightScale = totalHeight > available ? available / totalHeight : 1;
 
-        dialogueLines.forEach((dl, idx) => {
+        remaining.forEach((dl, idx) => {
           const head = resolveHead(dl.speaker);
           const bw = Math.min(0.5, Math.max(0.28, dl.text.length / 70));
           const bh = estimateHeight(dl.text) * heightScale;
-          // Horizontally bias bubble toward the speaker's side of the panel
           let bx: number;
           if (head) {
             const desired = head.x - bw / 2;
             bx = Math.max(0.03, Math.min(0.97 - bw, desired));
           } else {
-            // Alternate left/right for unmapped lines so they don't overlap
             bx = idx % 2 === 0 ? 0.04 : Math.max(0.04, 0.96 - bw);
           }
           const by = Math.min(0.97 - bh, cursorY);
@@ -320,11 +324,11 @@ export default function LetterPage() {
           cursorY = by + bh + 0.02;
         });
 
-        newBubbles[`p_${dp.index}`] = out;
+        newBubbles[panelKey] = out;
       });
       setBubblesByPanel(newBubbles);
     },
-    [allParsedPanels]
+    [allParsedPanels, bubblesByPanel]
   );
 
   // Re-place bubbles whenever the user updates the speaker mapping

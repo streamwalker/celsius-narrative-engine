@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { Trash2, MessageCircle } from 'lucide-react';
+import { Trash2, MessageCircle, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   clampBubbleBox,
@@ -247,6 +247,7 @@ export function PanelBubbleEditor({
             setEditingId(null);
           }}
           onRequestDelete={() => removeBubble(b.id)}
+          onToggleLock={() => updateBubble(b.id, { locked: !b.locked })}
           onCycleSpeaker={() => {
             // Cycle: none → speaker 0 → speaker 1 → … → none
             if (speakers.length === 0) return;
@@ -280,6 +281,7 @@ interface InteractiveBubbleProps {
   onRequestEdit: () => void;
   onCommitEdit: (text: string) => void;
   onRequestDelete: () => void;
+  onToggleLock: () => void;
   onCycleSpeaker: () => void;
   speakerName?: string;
 }
@@ -296,6 +298,7 @@ function InteractiveBubble({
   onRequestEdit,
   onCommitEdit,
   onRequestDelete,
+  onToggleLock,
   onCycleSpeaker,
   speakerName,
 }: InteractiveBubbleProps) {
@@ -443,6 +446,17 @@ function InteractiveBubble({
               title="Edit text"
             >
               <MessageCircle className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={onToggleLock}
+              className={cn(
+                'rounded px-1 py-0.5 text-[10px] hover:bg-muted',
+                bubble.locked && 'text-primary'
+              )}
+              title={bubble.locked ? 'Unlock — auto-lettering may overwrite' : 'Lock — preserve through remapping'}
+            >
+              {bubble.locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
             </button>
             <button
               type="button"
