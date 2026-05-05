@@ -44,7 +44,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { imageDataUrl, characters } = await req.json();
+    const { imageDataUrl, characters, region } = await req.json();
     if (!imageDataUrl || typeof imageDataUrl !== "string") {
       return json({ error: "imageDataUrl required" }, 400);
     }
@@ -55,7 +55,22 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return json({ error: "AI service not configured" }, 500);
 
-    const userText = `Character roster: ${roster.length ? roster.join(", ") : "(none provided — leave speakers empty)"}\n\nAnalyze the attached page.`;
+    const hasRegion =
+      region &&
+      [region.x, region.y, region.w, region.h].every((n: any) => typeof n === "number") &&
+      region.w > 0 &&
+      region.h > 0;
+    const regionInstruction = hasRegion
+      ? `\n\nIMPORTANT: ONLY detect panels whose centers fall inside the rectangle x=[${region.x.toFixed(
+          3
+        )}..${(region.x + region.w).toFixed(3)}], y=[${region.y.toFixed(3)}..${(
+          region.y + region.h
+        ).toFixed(
+          3
+        )}] (fractions of the full page). Ignore everything outside this rectangle. Coordinates in the response MUST still be relative to the FULL page.`
+      : "";
+
+    const userText = `Character roster: ${roster.length ? roster.join(", ") : "(none provided — leave speakers empty)"}\n\nAnalyze the attached page.${regionInstruction}`;
 
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
