@@ -363,10 +363,95 @@ export default function LetterPage() {
     [panels]
   );
 
+  /**
+   * Sort panels into reading order (top→bottom rows, then left→right within
+   * a row) and renumber index sequentially starting at 1.
+   */
+  const renumberInReadingOrder = (list: DetectedPanel[]): DetectedPanel[] => {
+    if (list.length === 0) return list;
+    const avgH = list.reduce((s, p) => s + p.h, 0) / list.length;
+    const rowTol = Math.max(0.04, avgH * 0.5);
+    // Sort top-to-bottom first
+    const byTop = [...list].sort((a, b) => a.y - b.y);
+    const rows: DetectedPanel[][] = [];
+    for (const p of byTop) {
+      const row = rows[rows.length - 1];
+      if (row && Math.abs(p.y - row[0].y) <= rowTol) row.push(p);
+      else rows.push([p]);
+    }
+    const ordered: DetectedPanel[] = [];
+    rows.forEach((r) => {
+      r.sort((a, b) => a.x - b.x).forEach((p) => ordered.push(p));
+    });
+    return ordered.map((p, i) => ({ ...p, index: i + 1 }));
+  };
+
+  /**
+   * Merge panels that overlap heavily or are near-duplicates. Returns a new
+   * array with merged bounding boxes and combined speaker lists.
+   */
+  const mergeOverlappingPanels = (list: DetectedPanel[]): DetectedPanel[] => {
+    const OVERLAP_RATIO = 0.6; // intersection / smaller-area
+    const remaining = list.map((p) => ({ ...p, speakers: [...p.speakers] }));
+    let merged = true;
+    while (merged) {
+      merged = false;
+      outer: for (let i = 0; i < remaining.length; i++) {
+        for (let j = i + 1; j < remaining.length; j++) {
+          const a = remaining[i];
+          const b = remaining[j];
+          const ix1 = Math.max(a.x, b.x);
+          const iy1 = Math.max(a.y, b.y);
+          const ix2 = Math.min(a.x + a.w, b.x + b.w);
+          const iy2 = Math.min(a.y + a.h, b.y + b.h);
+          const iw = ix2 - ix1;
+          const ih = iy2 - iy1;
+          if (iw <= 0 || ih <= 0) continue;
+          const inter = iw * ih;
+          const areaA = a.w * a.h;
+          const areaB = b.w * b.h;
+          const ratio = inter / Math.min(areaA, areaB);
+          if (ratio >= OVERLAP_RATIO) {
+            const nx = Math.min(a.x, b.x);
+            const ny = Math.min(a.y, b.y);
+            const nx2 = Math.max(a.x + a.w, b.x + b.w);
+            const ny2 = Math.max(a.y + a.h, b.y + b.h);
+            // De-duplicate speakers by name + rough position
+            const speakers = [...a.speakers];
+            for (const s of b.speakers) {
+              const dup = speakers.some(
+                (x) =>
+                  x.name.trim().toLowerCase() === s.name.trim().toLowerCase() &&
+                  Math.abs(x.x - s.x) < 0.05 &&
+                  Math.abs(x.y - s.y) < 0.05
+              );
+              if (!dup) speakers.push(s);
+            }
+            remaining.splice(j, 1);
+            remaining[i] = {
+              ...a,
+              x: nx,
+              y: ny,
+              w: nx2 - nx,
+              h: ny2 - ny,
+              speakers,
+            };
+            merged = true;
+            break outer;
+          }
+        }
+      }
+    }
+    return remaining;
+  };
+
+  const tidyPanels = (list: DetectedPanel[]) =>
+    renumberInReadingOrder(mergeOverlappingPanels(list));
+
   const applyPanelBoxes = (boxes: PanelBox[]) => {
     // Preserve any existing speaker data per panel index when possible
     const oldByIndex = new Map(panels.map((p) => [p.index, p]));
-    const next: DetectedPanel[] = boxes.map((b) => {
+    const mapped: DetectedPanel[] = boxes.map((b) => {
       const existing = oldByIndex.get(b.index);
       return {
         index: b.index,
@@ -377,6 +462,7 @@ export default function LetterPage() {
         speakers: existing?.speakers ?? [],
       };
     });
+    const next = tidyPanels(mapped);
     setPanels(next);
     placeBubbles(next, speakerMap);
   };
@@ -391,10 +477,21 @@ export default function LetterPage() {
       h: 0.25,
       speakers: [],
     };
-    const next = [...panels, newPanel];
+    const next = tidyPanels([...panels, newPanel]);
     setPanels(next);
     placeBubbles(next, speakerMap);
     setEditingPanels(true);
+  };
+
+  const handleTidyPanels = () => {
+    if (panels.length === 0) return;
+    const next = tidyPanels(panels);
+    setPanels(next);
+    placeBubbles(next, speakerMap);
+    toast({
+      title: 'Panels tidied',
+      description: `Reordered into reading sequence; merged overlapping boxes.`,
+    });
   };
 
   const handleAutoLetter = async () => {
