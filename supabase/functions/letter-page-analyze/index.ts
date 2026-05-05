@@ -34,7 +34,7 @@ Rules:
 - Only list speakers you can clearly identify from the roster; omit unknowns.
 - Output JSON only, no prose, no markdown fences.`;
 
-serve(async (req) => {
+export const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -147,7 +147,9 @@ serve(async (req) => {
     console.error("letter-page-analyze error:", err);
     return json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
   }
-});
+};
+
+serve(handler);
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
