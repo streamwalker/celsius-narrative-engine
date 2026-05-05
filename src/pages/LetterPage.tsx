@@ -949,6 +949,11 @@ ASTRA: "Too quiet."`}
                         speakers={speakers}
                         aspectRatio={p.w && p.h ? p.w / p.h : 1}
                         className="!h-full"
+                        tailTargets={p.speakers.map((s) => ({
+                          name: s.name,
+                          x: p.w > 0 ? Math.max(0, Math.min(1, (s.x - p.x) / p.w)) : 0.5,
+                          y: p.h > 0 ? Math.max(0, Math.min(1, (s.y - p.y) / p.h)) : 0.5,
+                        }))}
                         onChange={(next) =>
                           setBubblesByPanel((prev) => ({ ...prev, [key]: next }))
                         }
