@@ -556,6 +556,7 @@ export default function LetterPage() {
   };
 
   const addManualPanel = () => {
+    pushHistory();
     const idx = panels.length + 1;
     const newPanel: DetectedPanel = {
       index: idx,
@@ -573,6 +574,7 @@ export default function LetterPage() {
 
   const handleTidyPanels = () => {
     if (panels.length === 0) return;
+    pushHistory();
     const next = tidyPanels(panels);
     setPanels(next);
     placeBubbles(next, speakerMap);
