@@ -102,10 +102,6 @@ export default function LetterPage() {
   const [undoStack, setUndoStack] = useState<EditSnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<EditSnapshot[]>([]);
   const HISTORY_LIMIT = 50;
-  const cloneSnap = (): EditSnapshot => ({
-    panels: JSON.parse(JSON.stringify(panels)),
-    bubblesByPanel: JSON.parse(JSON.stringify(bubblesByPanel)),
-  });
   const pushHistory = useCallback(() => {
     setUndoStack((s) => {
       const snap: EditSnapshot = {
