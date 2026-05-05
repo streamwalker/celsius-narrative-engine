@@ -18,7 +18,7 @@ export interface LetteringProjectRow {
   image_path: string | null;
   panels: LetteringPanel[];
   bubbles_by_panel: Record<string, PanelBubbleData[]>;
-  speaker_map: Record<string, string>;
+  speaker_map: Record<string, string | string[]>;
   created_at: string;
   updated_at: string;
 }
@@ -79,7 +79,7 @@ export async function saveLetteringProject(params: {
   scriptText: string;
   panels: LetteringPanel[];
   bubblesByPanel: Record<string, PanelBubbleData[]>;
-  speakerMap: Record<string, string>;
+  speakerMap: Record<string, string | string[]>;
   /** Provide when uploading a new artwork; data: URL */
   newImageDataUrl?: string | null;
   /** Existing image path to keep (when not replacing). */

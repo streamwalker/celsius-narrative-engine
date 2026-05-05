@@ -17,6 +17,14 @@ import { BubbleShape } from './BubbleShape';
  * 0..1 against the panel container's measured size, so positions survive
  * resizes and exports.
  */
+export interface TailTargetOption {
+  /** Detected character name (matches DetectedPanel.speakers[].name) */
+  name: string;
+  /** Position normalized 0..1 within the panel */
+  x: number;
+  y: number;
+}
+
 export interface PanelBubbleEditorProps {
   imageUrl?: string;
   bubbles: PanelBubbleData[];
@@ -31,6 +39,8 @@ export interface PanelBubbleEditorProps {
   /** Aspect ratio of the panel container. Defaults to 4/3 to match ComicPanel. */
   aspectRatio?: number;
   className?: string;
+  /** Available detected characters whose head positions can target the tail. */
+  tailTargets?: TailTargetOption[];
 }
 
 type DragMode =
@@ -50,6 +60,7 @@ export function PanelBubbleEditor({
   placeholder,
   aspectRatio = 4 / 3,
   className,
+  tailTargets,
 }: PanelBubbleEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragMode | null>(null);
@@ -259,6 +270,18 @@ export function PanelBubbleEditor({
             updateBubble(b.id, { speakerId: nextId });
           }}
           speakerName={b.speakerId ? speakerById.get(b.speakerId)?.name : undefined}
+          tailTargets={tailTargets}
+          onPickTailTarget={(name) => {
+            const t = tailTargets?.find((x) => x.name === name);
+            if (!t) {
+              updateBubble(b.id, { tailTarget: undefined });
+              return;
+            }
+            updateBubble(b.id, {
+              tailTarget: name,
+              tail: { x: t.x, y: t.y },
+            });
+          }}
         />
       ))}
     </div>
@@ -284,6 +307,8 @@ interface InteractiveBubbleProps {
   onToggleLock: () => void;
   onCycleSpeaker: () => void;
   speakerName?: string;
+  tailTargets?: TailTargetOption[];
+  onPickTailTarget?: (name: string | null) => void;
 }
 
 function InteractiveBubble({
@@ -301,6 +326,8 @@ function InteractiveBubble({
   onToggleLock,
   onCycleSpeaker,
   speakerName,
+  tailTargets,
+  onPickTailTarget,
 }: InteractiveBubbleProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [draft, setDraft] = useState(bubble.text);
@@ -458,6 +485,21 @@ function InteractiveBubble({
             >
               {bubble.locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
             </button>
+            {tailTargets && tailTargets.length > 1 && bubble.tail && onPickTailTarget && (
+              <select
+                value={bubble.tailTarget ?? ''}
+                onChange={(e) => onPickTailTarget(e.target.value || null)}
+                className="h-5 max-w-[90px] rounded border bg-background px-1 text-[10px]"
+                title="Tail points to which character?"
+              >
+                <option value="">Tail: auto</option>
+                {tailTargets.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    → {t.name}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               onClick={onRequestDelete}

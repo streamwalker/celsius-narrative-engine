@@ -34,6 +34,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 import { PanelBubbleEditor } from '@/components/PanelBubbleEditor';
 import { parseComicScript } from '@/lib/comic-panel-parser';
 import {
@@ -63,8 +64,8 @@ export default function LetterPage() {
   const [panels, setPanels] = useState<DetectedPanel[]>([]);
   const [bubblesByPanel, setBubblesByPanel] = useState<Record<string, PanelBubbleData[]>>({});
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
-  // script speaker (lowercased) → detected visible speaker name (as returned by AI)
-  const [speakerMap, setSpeakerMap] = useState<Record<string, string>>({});
+  // script speaker (lowercased) → one or more detected visible speaker names
+  const [speakerMap, setSpeakerMap] = useState<Record<string, string | string[]>>({});
 
   const [editingPanels, setEditingPanels] = useState(false);
 
@@ -144,7 +145,13 @@ export default function LetterPage() {
       setScriptText(row.script_text || '');
       setPanels(row.panels || []);
       setBubblesByPanel(row.bubbles_by_panel || {});
-      setSpeakerMap(row.speaker_map || {});
+      // Backward-compat: legacy projects stored string values; coerce to arrays.
+      const rawMap = (row.speaker_map || {}) as Record<string, string | string[]>;
+      const normMap: Record<string, string[]> = {};
+      for (const [k, v] of Object.entries(rawMap)) {
+        normMap[k] = Array.isArray(v) ? v : [v];
+      }
+      setSpeakerMap(normMap);
       setSpeakers(buildSpeakerRoster(
         Array.from(new Set((row.panels || []).flatMap((p) => p.speakers.map((s) => s.name))))
       ));
@@ -239,7 +246,7 @@ export default function LetterPage() {
   }, [characterRoster, detectedSpeakerNames, panels.length]);
 
   const placeBubbles = useCallback(
-    (detected: DetectedPanel[], mapping: Record<string, string>) => {
+    (detected: DetectedPanel[], mapping: Record<string, string | string[]>) => {
       const newBubbles: Record<string, PanelBubbleData[]> = {};
       detected.forEach((dp, i) => {
         const parsed = allParsedPanels[i]; // 1:1 by index
@@ -264,13 +271,24 @@ export default function LetterPage() {
           });
         }
 
-        const resolveHead = (scriptSpeaker: string) => {
+        // Per-speaker rotation index so multi-mapped speakers cycle targets
+        const speakerLineCounter = new Map<string, number>();
+        const resolveHead = (scriptSpeaker: string, override?: string) => {
+          if (override) {
+            const h = headInPanel.get(override.trim().toLowerCase());
+            if (h) return h;
+          }
           const key = scriptSpeaker.trim().toLowerCase();
           let head = headInPanel.get(key);
           if (head) return head;
           const mapped = mapping[key];
-          if (mapped) head = headInPanel.get(mapped.trim().toLowerCase());
-          return head;
+          const targets = Array.isArray(mapped) ? mapped : mapped ? [mapped] : [];
+          // Filter to those actually visible in this panel
+          const visible = targets.filter((t) => headInPanel.has(t.trim().toLowerCase()));
+          if (visible.length === 0) return undefined;
+          const idx = speakerLineCounter.get(key) ?? 0;
+          speakerLineCounter.set(key, idx + 1);
+          return headInPanel.get(visible[idx % visible.length].trim().toLowerCase());
         };
 
         const dialogueLines = parsed?.dialogues ?? [];
@@ -759,10 +777,9 @@ ASTRA: "Too quiet."`}
                     variant="outline"
                     className="h-7 text-[11px]"
                     onClick={() => {
-                      const next: Record<string, string> = { ...speakerMap };
+                      const next: Record<string, string | string[]> = { ...speakerMap };
                       const norm = (s: string) =>
                         s.toLowerCase().replace(/[^a-z0-9]+/g, '');
-                      // Score name similarity 0..1 (token / substring / shared chars)
                       const nameScore = (a: string, b: string) => {
                         const na = norm(a);
                         const nb = norm(b);
@@ -774,34 +791,30 @@ ASTRA: "Too quiet."`}
                         let shared = 0;
                         for (const t of at) if (bt.has(t)) shared++;
                         const tokenJ = shared / Math.max(1, at.size + bt.size - shared);
-                        // Char-overlap fallback
                         const setA = new Set(na);
                         let charShared = 0;
                         for (const c of nb) if (setA.has(c)) charShared++;
                         const charJ = charShared / Math.max(na.length, nb.length);
                         return Math.max(tokenJ, charJ * 0.6);
                       };
-                      // Build per-script-speaker panel set & average head position
                       for (const scriptName of uncertainScriptSpeakers) {
                         const key = scriptName.trim().toLowerCase();
-                        // Panels in which this script speaker has a line
                         const panelIdxs: number[] = [];
                         allParsedPanels.forEach((p, i) => {
                           if (p.dialogues?.some((d) => d.speaker.trim().toLowerCase() === key)) {
                             panelIdxs.push(i);
                           }
                         });
-                        // For each candidate detected speaker, score
                         let best: { name: string; score: number } | null = null;
                         for (const cand of detectedSpeakerNames) {
                           const candKey = cand.trim().toLowerCase();
-                          // Skip if another uncertain speaker is already mapped here
-                          const taken = Object.entries(next).some(
-                            ([k, v]) => k !== key && v.trim().toLowerCase() === candKey
-                          );
+                          const taken = Object.entries(next).some(([k, v]) => {
+                            if (k === key) return false;
+                            const arr = Array.isArray(v) ? v : [v];
+                            return arr.some((x) => x.trim().toLowerCase() === candKey);
+                          });
                           if (taken) continue;
                           const ns = nameScore(scriptName, cand);
-                          // Co-presence: how often candidate appears in the same panels
                           let coPresent = 0;
                           for (const idx of panelIdxs) {
                             const dp = panels[idx];
@@ -814,7 +827,7 @@ ASTRA: "Too quiet."`}
                           const score = ns * 0.65 + presence * 0.35;
                           if (!best || score > best.score) best = { name: cand, score };
                         }
-                        if (best && best.score > 0.15) next[key] = best.name;
+                        if (best && best.score > 0.15) next[key] = [best.name];
                       }
                       setSpeakerMap(next);
                     }}
@@ -823,39 +836,61 @@ ASTRA: "Too quiet."`}
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  These script speakers weren't matched to a visible character. Pick the closest one
-                  on the page so tails point correctly, or use Auto-map to guess by name & position.
+                  These script speakers weren't matched to a visible character. Toggle one or more
+                  detected characters below — multi-mapped speakers will rotate targets per line,
+                  and you can override per dialogue line on each bubble.
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {uncertainScriptSpeakers.map((name) => {
                     const key = name.trim().toLowerCase();
+                    const raw = speakerMap[key];
+                    const selected = Array.isArray(raw) ? raw : raw ? [raw] : [];
+                    const selectedSet = new Set(selected.map((s) => s.trim().toLowerCase()));
                     return (
-                      <div key={key} className="flex items-center gap-2">
-                        <span className="w-24 shrink-0 truncate text-xs font-medium">{name}</span>
-                        <span className="text-[11px] text-muted-foreground">→</span>
-                        <Select
-                          value={speakerMap[key] ?? '__none__'}
-                          onValueChange={(v) =>
-                            setSpeakerMap((prev) => {
-                              const next = { ...prev };
-                              if (v === '__none__') delete next[key];
-                              else next[key] = v;
-                              return next;
-                            })
-                          }
-                        >
-                          <SelectTrigger className="h-8 flex-1 text-xs">
-                            <SelectValue placeholder="Unmapped" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Unmapped</SelectItem>
-                            {detectedSpeakerNames.map((d) => (
-                              <SelectItem key={d} value={d}>
+                      <div key={key} className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-24 shrink-0 truncate text-xs font-medium">{name}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            → {selected.length === 0 ? 'Unmapped' : `${selected.length} target${selected.length > 1 ? 's' : ''}`}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {detectedSpeakerNames.map((d) => {
+                            const isOn = selectedSet.has(d.trim().toLowerCase());
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() =>
+                                  setSpeakerMap((prev) => {
+                                    const next = { ...prev };
+                                    const cur = Array.isArray(next[key])
+                                      ? [...(next[key] as string[])]
+                                      : next[key]
+                                      ? [next[key] as string]
+                                      : [];
+                                    const i = cur.findIndex(
+                                      (x) => x.trim().toLowerCase() === d.trim().toLowerCase()
+                                    );
+                                    if (i >= 0) cur.splice(i, 1);
+                                    else cur.push(d);
+                                    if (cur.length === 0) delete next[key];
+                                    else next[key] = cur;
+                                    return next;
+                                  })
+                                }
+                                className={cn(
+                                  'rounded-full border px-2 py-0.5 text-[10px] transition-colors',
+                                  isOn
+                                    ? 'border-primary bg-primary/15 text-primary'
+                                    : 'border-border bg-background hover:bg-muted'
+                                )}
+                              >
                                 {d}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })}
@@ -914,6 +949,11 @@ ASTRA: "Too quiet."`}
                         speakers={speakers}
                         aspectRatio={p.w && p.h ? p.w / p.h : 1}
                         className="!h-full"
+                        tailTargets={p.speakers.map((s) => ({
+                          name: s.name,
+                          x: p.w > 0 ? Math.max(0, Math.min(1, (s.x - p.x) / p.w)) : 0.5,
+                          y: p.h > 0 ? Math.max(0, Math.min(1, (s.y - p.y) / p.h)) : 0.5,
+                        }))}
                         onChange={(next) =>
                           setBubblesByPanel((prev) => ({ ...prev, [key]: next }))
                         }
