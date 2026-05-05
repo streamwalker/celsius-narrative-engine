@@ -80,8 +80,22 @@ export default function LetterPage() {
     return Array.from(set);
   }, [allParsedPanels]);
 
+  // All visible speaker names detected by the AI across the page
+  const detectedSpeakerNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of panels) for (const s of p.speakers) set.add(s.name.trim());
+    return Array.from(set);
+  }, [panels]);
+
+  // Script speakers that don't directly match any detected speaker name (case-insensitive)
+  const uncertainScriptSpeakers = useMemo(() => {
+    if (panels.length === 0) return [];
+    const detectedLower = new Set(detectedSpeakerNames.map((n) => n.toLowerCase()));
+    return characterRoster.filter((c) => !detectedLower.has(c.trim().toLowerCase()));
+  }, [characterRoster, detectedSpeakerNames, panels.length]);
+
   const placeBubbles = useCallback(
-    (detected: DetectedPanel[]) => {
+    (detected: DetectedPanel[], mapping: Record<string, string>) => {
       const newBubbles: Record<string, PanelBubbleData[]> = {};
       detected.forEach((dp, i) => {
         const parsed = allParsedPanels[i]; // 1:1 by index
@@ -91,7 +105,7 @@ export default function LetterPage() {
           out.push(createBubble('caption', { text: parsed.narration.trim() }));
         }
 
-        // Build a map of speakerName(lower) → head position relative to PANEL (not page)
+        // Build a map of detectedName(lower) → head position relative to PANEL
         const headInPanel = new Map<string, { x: number; y: number }>();
         for (const s of dp.speakers) {
           const px = dp.w > 0 ? (s.x - dp.x) / dp.w : 0.5;
@@ -102,17 +116,24 @@ export default function LetterPage() {
           });
         }
 
+        const resolveHead = (scriptSpeaker: string) => {
+          const key = scriptSpeaker.trim().toLowerCase();
+          let head = headInPanel.get(key);
+          if (head) return head;
+          const mapped = mapping[key];
+          if (mapped) head = headInPanel.get(mapped.trim().toLowerCase());
+          return head;
+        };
+
         const dialogueLines: { speaker: string; text: string; kind: 'speech' | 'thought' | 'shout' | 'whisper' }[] = [];
         if (parsed?.dialogue) {
           const speaker = parsed.characters[0] ?? '';
           dialogueLines.push({ speaker, text: parsed.dialogue, kind: 'speech' });
         }
 
-        // Stack bubbles vertically across top of panel
         let cursorY = 0.04;
         for (const dl of dialogueLines) {
-          const head = headInPanel.get(dl.speaker.trim().toLowerCase());
-          // Place bubble above head if possible, else top-left
+          const head = resolveHead(dl.speaker);
           const bx = head ? Math.max(0.04, Math.min(0.55, head.x - 0.18)) : 0.06;
           const by = cursorY;
           const bw = 0.38;
@@ -138,6 +159,12 @@ export default function LetterPage() {
     },
     [allParsedPanels]
   );
+
+  // Re-place bubbles whenever the user updates the speaker mapping
+  useEffect(() => {
+    if (panels.length > 0) placeBubbles(panels, speakerMap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speakerMap]);
 
   const handleAutoLetter = async () => {
     if (!imageDataUrl) {
