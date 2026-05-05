@@ -95,6 +95,29 @@ export default function LetterPage() {
 
   const exportRef = useRef<HTMLDivElement>(null);
 
+  // Keep at least this many CSS pixels of artwork visible inside the viewport.
+  const PAN_MARGIN = 60;
+  const clampPan = (
+    p: { x: number; y: number },
+    z: number,
+    vpW: number,
+    vpH: number
+  ) => {
+    const content = exportRef.current;
+    if (!content) return p;
+    // offsetWidth/Height are unaffected by CSS transforms
+    const cw = content.offsetWidth * z;
+    const ch = content.offsetHeight * z;
+    const minX = Math.min(PAN_MARGIN, vpW - PAN_MARGIN) - cw + PAN_MARGIN;
+    const maxX = vpW - PAN_MARGIN;
+    const minY = Math.min(PAN_MARGIN, vpH - PAN_MARGIN) - ch + PAN_MARGIN;
+    const maxY = vpH - PAN_MARGIN;
+    return {
+      x: Math.max(minX, Math.min(maxX, p.x)),
+      y: Math.max(minY, Math.min(maxY, p.y)),
+    };
+  };
+
   // ---- Undo / redo for panel editing ----
   type EditSnapshot = {
     panels: DetectedPanel[];
@@ -1531,10 +1554,13 @@ ASTRA: "Too quiet."`}
                   const factor = Math.exp(-e.deltaY * 0.0015);
                   setZoom((prev) => {
                     const next = Math.max(0.25, Math.min(4, prev * factor));
-                    setPan((p) => ({
-                      x: cx - ((cx - p.x) * next) / prev,
-                      y: cy - ((cy - p.y) * next) / prev,
-                    }));
+                    setPan((p) => {
+                      const np = {
+                        x: cx - ((cx - p.x) * next) / prev,
+                        y: cy - ((cy - p.y) * next) / prev,
+                      };
+                      return clampPan(np, next, rect.width, rect.height);
+                    });
                     return next;
                   });
                 }}
@@ -1548,12 +1574,16 @@ ASTRA: "Too quiet."`}
                   const start = { x: e.clientX, y: e.clientY };
                   const startPan = { ...pan };
                   const target = e.currentTarget;
+                  const vpRect = viewportRef.current?.getBoundingClientRect();
                   target.setPointerCapture(e.pointerId);
                   const onMove = (ev: PointerEvent) => {
-                    setPan({
+                    const np = {
                       x: startPan.x + (ev.clientX - start.x),
                       y: startPan.y + (ev.clientY - start.y),
-                    });
+                    };
+                    setPan(
+                      vpRect ? clampPan(np, zoom, vpRect.width, vpRect.height) : np
+                    );
                   };
                   const onUp = (ev: PointerEvent) => {
                     target.releasePointerCapture(ev.pointerId);
