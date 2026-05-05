@@ -35,6 +35,12 @@ export interface PanelBubbleData {
   tail?: BubbleTail;
   /** Optional speaker id for color-coding the bubble border. */
   speakerId?: string;
+  /**
+   * When true, auto-lettering will preserve this bubble's speakerId, tail
+   * target, and position even if the user changes speaker mappings or
+   * re-runs placement. Lets manual fixes survive remapping.
+   */
+  locked?: boolean;
 }
 
 export interface Speaker {
