@@ -95,6 +95,31 @@ export default function LetterPage() {
 
   const exportRef = useRef<HTMLDivElement>(null);
 
+  // Keep at least this many CSS pixels of artwork visible inside the viewport.
+  const PAN_MARGIN = 60;
+  const clampPan = (
+    p: { x: number; y: number },
+    z: number,
+    vpW: number,
+    vpH: number
+  ) => {
+    const content = exportRef.current;
+    if (!content) return p;
+    // Un-transformed content size at zoom = 1
+    const rect = content.getBoundingClientRect();
+    const curZ = z || 1;
+    const cw = (rect.width / curZ) * z;
+    const ch = (rect.height / curZ) * z;
+    const minX = Math.min(PAN_MARGIN, vpW - PAN_MARGIN) - cw + PAN_MARGIN;
+    const maxX = vpW - PAN_MARGIN;
+    const minY = Math.min(PAN_MARGIN, vpH - PAN_MARGIN) - ch + PAN_MARGIN;
+    const maxY = vpH - PAN_MARGIN;
+    return {
+      x: Math.max(minX, Math.min(maxX, p.x)),
+      y: Math.max(minY, Math.min(maxY, p.y)),
+    };
+  };
+
   // ---- Undo / redo for panel editing ----
   type EditSnapshot = {
     panels: DetectedPanel[];
