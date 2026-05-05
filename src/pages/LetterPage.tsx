@@ -740,7 +740,11 @@ export default function LetterPage() {
     const isOverlayNode = (node: HTMLElement) =>
       node.classList?.contains('lp-bubble-overlay');
 
+    const isBadgeNode = (node: HTMLElement) =>
+      node.classList?.contains('lp-target-badges');
+
     const filter = (node: HTMLElement) => {
+      if (isBadgeNode(node)) return false;
       if (layer === 'artwork') return !isOverlayNode(node);
       if (layer === 'bubbles') return !isArtworkNode(node);
       return true;
