@@ -6,3 +6,6 @@ project_id = "jhtbircnacbdbixfzzkq"
 
 [functions.process-email-queue]
 verify_jwt = true
+
+[functions.retry-signup-confirmations]
+verify_jwt = false
