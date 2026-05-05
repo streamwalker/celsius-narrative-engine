@@ -873,6 +873,72 @@ ASTRA: "Too quiet."`}
             )}
           </Button>
 
+          {imageUrl && panels.length > 0 && (
+            <Card>
+              <CardContent className="space-y-2 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                      Re-detect in region
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Draw a box on the page; AI re-runs only there and merges into your edits.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={regionMode}
+                    onCheckedChange={(v) => {
+                      setRegionMode(v);
+                      if (!v) {
+                        setRegion(null);
+                        setDrawingRegion(null);
+                      } else {
+                        setEditingPanels(false);
+                      }
+                    }}
+                  />
+                </div>
+                {regionMode && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {region
+                        ? `${Math.round(region.w * 100)}% × ${Math.round(region.h * 100)}%`
+                        : 'No region drawn yet'}
+                    </span>
+                    {region && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-[11px]"
+                        onClick={() => setRegion(null)}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      className="ml-auto h-7"
+                      disabled={!region || reanalyzingRegion}
+                      onClick={handleReanalyzeRegion}
+                    >
+                      {reanalyzingRegion ? (
+                        <>
+                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                          Analyzing…
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                          Re-detect & merge
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {imageUrl && (
             <Card>
               <CardContent className="space-y-3 p-4">
