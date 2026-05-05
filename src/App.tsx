@@ -45,6 +45,7 @@ const App = () => (
             <Route path="/script-formatter" element={<ScriptFormatter />} />
             <Route path="/script-formatter/:draftId" element={<ScriptFormatter />} />
             <Route path="/comic-panels/:draftId" element={<ComicPanels />} />
+            <Route path="/letter-page" element={<LetterPage />} />
             <Route path="/library" element={<Library />} />
             <Route path="/narrative-engine" element={<NarrativeEngine />} />
             <Route path="/narrative-engine/guide" element={<NarrativeEngineGuide />} />
