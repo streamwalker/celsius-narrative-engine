@@ -245,6 +245,8 @@ export default function LetterPage() {
     setScriptText('');
     setPanels([]);
     setBubblesByPanel({});
+    setUndoStack([]);
+    setRedoStack([]);
     setSpeakerMap({});
     setSpeakers([]);
     setImageUrl(null);
