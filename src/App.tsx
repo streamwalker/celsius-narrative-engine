@@ -31,6 +31,7 @@ import Dpa from "./pages/legal/Dpa";
 import AcceptableUse from "./pages/legal/AcceptableUse";
 import Patents from "./pages/legal/Patents";
 import AdminEmailLogs from "./pages/AdminEmailLogs";
+import Unsubscribe from "./pages/Unsubscribe";
 
 const queryClient = new QueryClient();
 
