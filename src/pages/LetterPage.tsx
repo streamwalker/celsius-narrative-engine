@@ -1005,6 +1005,9 @@ ASTRA: "Too quiet."`}
                 panels={panelBoxes}
                 onChange={applyPanelBoxes}
                 enabled={editingPanels}
+                gridSize={gridDivisions > 0 ? 1 / gridDivisions : 0}
+                snapToEdges={snapToEdges}
+                snapTolerance={0.012}
               />
             </div>
           )}
