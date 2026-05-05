@@ -33,6 +33,38 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [eulaAccepted, setEulaAccepted] = useState(false);
+  const [confirmation, setConfirmation] = useState<ConfirmationStatus | null>(null);
+
+  const resendConfirmation = async (targetEmail: string) => {
+    setConfirmation((prev) =>
+      prev ? { ...prev, phase: 'resending', resendError: undefined, resendCode: undefined, resendStatus: undefined } : prev,
+    );
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: targetEmail,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    });
+
+    if (resendError) {
+      setConfirmation((prev) =>
+        prev
+          ? {
+              ...prev,
+              phase: 'resend_failed',
+              resendError: resendError.message,
+              resendCode: (resendError as any)?.code,
+              resendStatus: (resendError as any)?.status,
+            }
+          : prev,
+      );
+      toast.error(`Resend failed: ${resendError.message}`);
+    } else {
+      setConfirmation((prev) =>
+        prev ? { ...prev, phase: 'sent', resentAt: new Date().toLocaleTimeString() } : prev,
+      );
+      toast.success('Confirmation email resent.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +75,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     }
 
     setIsLoading(true);
+    setConfirmation(null);
 
     try {
       if (isLogin) {
@@ -63,19 +96,20 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     } catch (error: any) {
       const errorCode = error?.code || error?.name;
       const errorMessage = error?.message || 'Authentication failed';
+      const errorStatus = error?.status;
 
-      if (isLogin && email && (errorCode === 'email_not_confirmed' || errorMessage.toLowerCase().includes('email not confirmed'))) {
-        const { error: resendError } = await supabase.auth.resend({
-          type: 'signup',
-          email,
-          options: { emailRedirectTo: `${window.location.origin}/` },
+      if (
+        isLogin &&
+        email &&
+        (errorCode === 'email_not_confirmed' || errorMessage.toLowerCase().includes('email not confirmed'))
+      ) {
+        setConfirmation({
+          phase: 'resending',
+          errorCode,
+          errorMessage,
+          errorStatus,
         });
-
-        if (resendError) {
-          toast.error(resendError.message || 'Email not confirmed. Failed to resend confirmation email.');
-        } else {
-          toast.success('Email not confirmed. We sent a new confirmation email.');
-        }
+        await resendConfirmation(email);
         return;
       }
 
