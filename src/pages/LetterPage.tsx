@@ -1149,6 +1149,17 @@ ASTRA: "Too quiet."`}
                   </div>
                   <Switch checked={editingPanels} onCheckedChange={setEditingPanels} />
                 </div>
+                {panels.length > 0 && (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Layers className={`h-4 w-4 ${showPanelDebug ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                        Show panel boxes
+                      </label>
+                    </div>
+                    <Switch checked={showPanelDebug} onCheckedChange={setShowPanelDebug} />
+                  </div>
+                )}
                 {editingPanels && (
                   <>
                     <p className="text-[11px] text-muted-foreground">
