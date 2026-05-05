@@ -485,6 +485,21 @@ function InteractiveBubble({
             >
               {bubble.locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
             </button>
+            {tailTargets && tailTargets.length > 1 && bubble.tail && onPickTailTarget && (
+              <select
+                value={bubble.tailTarget ?? ''}
+                onChange={(e) => onPickTailTarget(e.target.value || null)}
+                className="h-5 max-w-[90px] rounded border bg-background px-1 text-[10px]"
+                title="Tail points to which character?"
+              >
+                <option value="">Tail: auto</option>
+                {tailTargets.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    → {t.name}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               onClick={onRequestDelete}
