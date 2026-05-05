@@ -286,6 +286,8 @@ export default function LetterPage() {
       // Reset prior analysis
       setPanels([]);
       setBubblesByPanel({});
+      setUndoStack([]);
+      setRedoStack([]);
       setError(null);
     };
     reader.readAsDataURL(f);
