@@ -1,0 +1,47 @@
+{
+  "description": "Saved AI gateway response for the user's regression page that previously produced paper-thin overlapping panel-2/panel-3 strips. The handler must clean these up and emit four panels in reading order with speaker anchors preserved.",
+  "characters": ["Hero", "Villain", "Sidekick"],
+  "aiResponse": {
+    "panels": [
+      {
+        "index": 1,
+        "x": 0.04, "y": 0.03, "w": 0.92, "h": 0.22,
+        "speakers": [{ "name": "Hero", "x": 0.30, "y": 0.14 }]
+      },
+      {
+        "index": 2,
+        "x": 0.04, "y": 0.27, "w": 0.45, "h": 0.30,
+        "speakers": [{ "name": "Villain", "x": 0.20, "y": 0.42 }]
+      },
+      {
+        "index": 3,
+        "x": 0.51, "y": 0.27, "w": 0.45, "h": 0.30,
+        "speakers": [{ "name": "Sidekick", "x": 0.70, "y": 0.42 }]
+      },
+      {
+        "index": 4,
+        "x": 0.04, "y": 0.59, "w": 0.92, "h": 0.36,
+        "speakers": [
+          { "name": "Hero", "x": 0.25, "y": 0.78 },
+          { "name": "Villain", "x": 0.75, "y": 0.78 }
+        ]
+      },
+      {
+        "index": 5,
+        "x": 0.04, "y": 0.28, "w": 0.92, "h": 0.01,
+        "speakers": []
+      },
+      {
+        "index": 6,
+        "x": 0.05, "y": 0.27, "w": 0.43, "h": 0.30,
+        "speakers": []
+      }
+    ]
+  },
+  "expected": {
+    "panelCount": 4,
+    "indices": [1, 2, 3, 4],
+    "panel2Speaker": "Villain",
+    "panel3Speaker": "Sidekick"
+  }
+}
