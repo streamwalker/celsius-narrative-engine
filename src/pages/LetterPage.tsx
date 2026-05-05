@@ -68,6 +68,8 @@ export default function LetterPage() {
   const [speakerMap, setSpeakerMap] = useState<Record<string, string | string[]>>({});
 
   const [editingPanels, setEditingPanels] = useState(false);
+  const [snapToEdges, setSnapToEdges] = useState(true);
+  const [gridDivisions, setGridDivisions] = useState(0); // 0 = off; e.g. 12 = 12-col grid
 
   // ---- Library / persistence ----
   const [user, setUser] = useState<User | null>(null);
