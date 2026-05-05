@@ -852,9 +852,17 @@ export default function LetterPage() {
       filter,
     } as const;
 
-    return format === 'png'
-      ? await toPng(exportRef.current, opts)
-      : await toSvg(exportRef.current, opts);
+    // Temporarily neutralize zoom/pan so the render is in true page coords.
+    const node = exportRef.current;
+    const prevTransform = node.style.transform;
+    node.style.transform = 'translate(0px, 0px) scale(1)';
+    try {
+      return format === 'png'
+        ? await toPng(node, opts)
+        : await toSvg(node, opts);
+    } finally {
+      node.style.transform = prevTransform;
+    }
   };
 
   const handleExport = async (layer: ExportLayer, format: ExportFormat) => {
