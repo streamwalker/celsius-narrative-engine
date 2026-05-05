@@ -113,6 +113,8 @@ export default function LetterPage() {
       const url = reader.result as string;
       setImageDataUrl(url);
       setImageUrl(url);
+      setPendingImageDataUrl(url);
+      setSavedImagePath(null);
       // Reset prior analysis
       setPanels([]);
       setBubblesByPanel({});
