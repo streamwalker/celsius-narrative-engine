@@ -290,6 +290,54 @@ export default function LetterPage() {
     }
   };
 
+  // ---- Persist zoom/pan/zoomAnchor per page ----
+  const viewStorageKey = projectId
+    ? `letterpage:view:project:${projectId}`
+    : savedImagePath
+    ? `letterpage:view:image:${savedImagePath}`
+    : null;
+
+  // Restore on page change
+  useEffect(() => {
+    if (!viewStorageKey) return;
+    try {
+      const raw = localStorage.getItem(viewStorageKey);
+      if (!raw) return;
+      const v = JSON.parse(raw) as {
+        zoom?: number;
+        pan?: { x: number; y: number };
+        zoomAnchor?: 'cursor' | 'viewport';
+      };
+      skipNextViewSave.current = true;
+      if (typeof v.zoom === 'number') setZoom(v.zoom);
+      if (v.pan && typeof v.pan.x === 'number' && typeof v.pan.y === 'number')
+        setPan(v.pan);
+      if (v.zoomAnchor === 'cursor' || v.zoomAnchor === 'viewport')
+        setZoomAnchor(v.zoomAnchor);
+    } catch {
+      /* ignore */
+    }
+  }, [viewStorageKey]);
+
+  // Persist on change (debounced via rAF)
+  useEffect(() => {
+    if (!viewStorageKey) return;
+    if (skipNextViewSave.current) {
+      skipNextViewSave.current = false;
+      return;
+    }
+    const id = requestAnimationFrame(() => {
+      try {
+        localStorage.setItem(
+          viewStorageKey,
+          JSON.stringify({ zoom, pan, zoomAnchor })
+        );
+      } catch {
+        /* ignore quota */
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [viewStorageKey, zoom, pan, zoomAnchor]);
 
   // ---- Upload handler -------------------------------------------------------
   const onFile = (f: File | null) => {
