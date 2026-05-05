@@ -247,6 +247,7 @@ export function PanelBubbleEditor({
             setEditingId(null);
           }}
           onRequestDelete={() => removeBubble(b.id)}
+          onToggleLock={() => updateBubble(b.id, { locked: !b.locked })}
           onCycleSpeaker={() => {
             // Cycle: none → speaker 0 → speaker 1 → … → none
             if (speakers.length === 0) return;
