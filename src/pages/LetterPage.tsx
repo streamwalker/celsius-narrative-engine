@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown, MousePointerSquareDashed, Eye } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { PanelBoxEditor, type PanelBox } from '@/components/PanelBoxEditor';
 import {
   Select,
   SelectContent,
