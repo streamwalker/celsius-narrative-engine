@@ -1575,6 +1575,9 @@ ASTRA: "Too quiet."`}
                           />
                           {/* Resolved-target badges layer */}
                           <div className="lp-target-badges pointer-events-none absolute inset-0">
+                            {panelBubbles.map((b) => {
+                              const r = resolvedByBubbleId.get(b.id);
+                              if (!r) return null;
                               const sourceClass =
                                 r.source === 'override'
                                   ? 'bg-amber-500/90 text-amber-50 border-amber-300'
