@@ -307,6 +307,8 @@ interface InteractiveBubbleProps {
   onToggleLock: () => void;
   onCycleSpeaker: () => void;
   speakerName?: string;
+  tailTargets?: TailTargetOption[];
+  onPickTailTarget?: (name: string | null) => void;
 }
 
 function InteractiveBubble({
@@ -324,6 +326,8 @@ function InteractiveBubble({
   onToggleLock,
   onCycleSpeaker,
   speakerName,
+  tailTargets,
+  onPickTailTarget,
 }: InteractiveBubbleProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [draft, setDraft] = useState(bubble.text);
