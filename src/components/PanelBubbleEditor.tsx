@@ -60,6 +60,7 @@ export function PanelBubbleEditor({
   placeholder,
   aspectRatio = 4 / 3,
   className,
+  tailTargets,
 }: PanelBubbleEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragMode | null>(null);
