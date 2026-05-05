@@ -425,6 +425,54 @@ ASTRA: "Too quiet."`}
             )}
           </Button>
 
+          {imageUrl && (
+            <Card>
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {editingPanels ? (
+                      <MousePointerSquareDashed className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                      Edit panel boxes
+                    </label>
+                  </div>
+                  <Switch checked={editingPanels} onCheckedChange={setEditingPanels} />
+                </div>
+                {editingPanels && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Drag on empty artwork to draw a panel. Drag a panel to move it, the corner to
+                    resize, or click ✕ to delete. Bubbles update automatically.
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1" onClick={addManualPanel}>
+                    + Add panel
+                  </Button>
+                  {panels.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="flex-1"
+                      onClick={() => {
+                        setPanels([]);
+                        setBubblesByPanel({});
+                      }}
+                    >
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+                {panels.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {panels.length} panel{panels.length === 1 ? '' : 's'} on page
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
           {panels.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
