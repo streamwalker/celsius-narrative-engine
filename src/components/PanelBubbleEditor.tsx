@@ -270,6 +270,18 @@ export function PanelBubbleEditor({
             updateBubble(b.id, { speakerId: nextId });
           }}
           speakerName={b.speakerId ? speakerById.get(b.speakerId)?.name : undefined}
+          tailTargets={tailTargets}
+          onPickTailTarget={(name) => {
+            const t = tailTargets?.find((x) => x.name === name);
+            if (!t) {
+              updateBubble(b.id, { tailTarget: undefined });
+              return;
+            }
+            updateBubble(b.id, {
+              tailTarget: name,
+              tail: { x: t.x, y: t.y },
+            });
+          }}
         />
       ))}
     </div>
