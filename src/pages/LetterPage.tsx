@@ -1531,10 +1531,13 @@ ASTRA: "Too quiet."`}
                   const factor = Math.exp(-e.deltaY * 0.0015);
                   setZoom((prev) => {
                     const next = Math.max(0.25, Math.min(4, prev * factor));
-                    setPan((p) => ({
-                      x: cx - ((cx - p.x) * next) / prev,
-                      y: cy - ((cy - p.y) * next) / prev,
-                    }));
+                    setPan((p) => {
+                      const np = {
+                        x: cx - ((cx - p.x) * next) / prev,
+                        y: cy - ((cy - p.y) * next) / prev,
+                      };
+                      return clampPan(np, next, rect.width, rect.height);
+                    });
                     return next;
                   });
                 }}
@@ -1548,12 +1551,16 @@ ASTRA: "Too quiet."`}
                   const start = { x: e.clientX, y: e.clientY };
                   const startPan = { ...pan };
                   const target = e.currentTarget;
+                  const vpRect = viewportRef.current?.getBoundingClientRect();
                   target.setPointerCapture(e.pointerId);
                   const onMove = (ev: PointerEvent) => {
-                    setPan({
+                    const np = {
                       x: startPan.x + (ev.clientX - start.x),
                       y: startPan.y + (ev.clientY - start.y),
-                    });
+                    };
+                    setPan(
+                      vpRect ? clampPan(np, zoom, vpRect.width, vpRect.height) : np
+                    );
                   };
                   const onUp = (ev: PointerEvent) => {
                     target.releasePointerCapture(ev.pointerId);
