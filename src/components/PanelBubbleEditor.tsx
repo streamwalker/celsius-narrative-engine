@@ -281,6 +281,7 @@ interface InteractiveBubbleProps {
   onRequestEdit: () => void;
   onCommitEdit: (text: string) => void;
   onRequestDelete: () => void;
+  onToggleLock: () => void;
   onCycleSpeaker: () => void;
   speakerName?: string;
 }
