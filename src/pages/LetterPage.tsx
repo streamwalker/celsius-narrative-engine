@@ -229,18 +229,57 @@ export default function LetterPage() {
   };
 
   // ---- Export ---------------------------------------------------------------
-  const handleExport = async () => {
-    if (!exportRef.current) return;
+  const downloadDataUrl = (dataUrl: string, filename: string) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+  };
+
+  type ExportLayer = 'composite' | 'artwork' | 'bubbles';
+  type ExportFormat = 'png' | 'svg';
+
+  const renderLayer = async (layer: ExportLayer, format: ExportFormat) => {
+    if (!exportRef.current) return null;
+    // For artwork-only PNG we can just re-download the original data URL.
+    if (layer === 'artwork' && format === 'png' && imageDataUrl) {
+      return imageDataUrl;
+    }
+    const isArtworkNode = (node: HTMLElement) =>
+      node.tagName === 'IMG' && node.getAttribute('alt') === 'Page artwork';
+    const isOverlayNode = (node: HTMLElement) =>
+      node.classList?.contains('lp-bubble-overlay');
+
+    const filter = (node: HTMLElement) => {
+      if (layer === 'artwork') return !isOverlayNode(node);
+      if (layer === 'bubbles') return !isArtworkNode(node);
+      return true;
+    };
+
+    const opts = {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: layer === 'bubbles' ? undefined : '#ffffff',
+      filter,
+    } as const;
+
+    return format === 'png'
+      ? await toPng(exportRef.current, opts)
+      : await toSvg(exportRef.current, opts);
+  };
+
+  const handleExport = async (layer: ExportLayer, format: ExportFormat) => {
     try {
-      const dataUrl = await toPng(exportRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-      });
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = 'lettered-page.png';
-      a.click();
+      const dataUrl = await renderLayer(layer, format);
+      if (!dataUrl) return;
+      const ext = format === 'png' ? 'png' : 'svg';
+      const name =
+        layer === 'composite'
+          ? `lettered-page.${ext}`
+          : layer === 'artwork'
+            ? `page-artwork.${ext}`
+            : `page-bubbles.${ext}`;
+      downloadDataUrl(dataUrl, name);
     } catch (err) {
       toast({
         title: 'Export failed',
