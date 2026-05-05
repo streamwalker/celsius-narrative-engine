@@ -433,8 +433,15 @@ export default function LetterPage() {
     [allParsedPanels, bubblesByPanel]
   );
 
-  // Re-place bubbles whenever the user updates the speaker mapping
+  // Re-place bubbles whenever the user updates the speaker mapping.
+  // Skip exactly one run after loading a saved project so persisted
+  // bubbles (including tailTarget overrides) aren't immediately rewritten.
+  const skipNextMapEffect = useRef(false);
   useEffect(() => {
+    if (skipNextMapEffect.current) {
+      skipNextMapEffect.current = false;
+      return;
+    }
     if (panels.length > 0) placeBubbles(panels, speakerMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speakerMap]);
