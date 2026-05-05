@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { Trash2, MessageCircle } from 'lucide-react';
+import { Trash2, MessageCircle, Lock, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   clampBubbleBox,
