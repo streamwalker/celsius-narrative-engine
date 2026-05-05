@@ -1050,7 +1050,7 @@ ASTRA: "Too quiet."`}
 
           <Button
             onClick={handleAutoLetter}
-            disabled={analyzing || !imageDataUrl || allParsedPanels.length === 0}
+            disabled={analyzing || !imageDataUrl}
             className="w-full"
           >
             {analyzing ? (
