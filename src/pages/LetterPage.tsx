@@ -385,8 +385,21 @@ export default function LetterPage() {
         const available = Math.max(0.2, 0.96 - cursorY);
         const heightScale = totalHeight > available ? available / totalHeight : 1;
 
+        // Build a quick lookup of prior non-locked bubbles by (speakerId|text)
+        // so manual `tailTarget` overrides survive re-placement.
+        const priorOverrides = new Map<string, string>();
+        for (const b of prev) {
+          if (b.locked) continue;
+          if (!b.tailTarget) continue;
+          const k = `${b.speakerId ?? ''}::${b.text.trim()}`;
+          priorOverrides.set(k, b.tailTarget);
+        }
+
         remaining.forEach((dl, idx) => {
-          const head = resolveHead(dl.speaker);
+          const speakerId = dl.speaker ? speakerIdFromName(dl.speaker) : undefined;
+          const overrideKey = `${speakerId ?? ''}::${dl.text.trim()}`;
+          const carriedOverride = priorOverrides.get(overrideKey);
+          const head = resolveHead(dl.speaker, carriedOverride);
           const bw = Math.min(0.5, Math.max(0.28, dl.text.length / 70));
           const bh = estimateHeight(dl.text) * heightScale;
           let bx: number;
@@ -406,7 +419,8 @@ export default function LetterPage() {
             w: bw,
             h: bh,
             tail: head ? { x: head.x, y: head.y } : undefined,
-            speakerId: dl.speaker ? speakerIdFromName(dl.speaker) : undefined,
+            speakerId,
+            ...(carriedOverride ? { tailTarget: carriedOverride } : {}),
           };
           out.push(bubble);
           cursorY = by + bh + 0.02;
