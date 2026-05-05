@@ -1051,6 +1051,38 @@ ASTRA: "Too quiet."`}
                       Drag on empty artwork to draw a panel. Drag a panel to move it, the corner to
                       resize, or click ✕ to delete. Bubbles update automatically.
                     </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 flex-1 text-[11px]"
+                        disabled={undoStack.length === 0}
+                        onClick={handleUndo}
+                        title="Undo (Ctrl/Cmd+Z)"
+                      >
+                        ↶ Undo
+                        {undoStack.length > 0 && (
+                          <span className="ml-1 font-mono text-[10px] text-muted-foreground">
+                            {undoStack.length}
+                          </span>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 flex-1 text-[11px]"
+                        disabled={redoStack.length === 0}
+                        onClick={handleRedo}
+                        title="Redo (Ctrl/Cmd+Shift+Z)"
+                      >
+                        ↷ Redo
+                        {redoStack.length > 0 && (
+                          <span className="ml-1 font-mono text-[10px] text-muted-foreground">
+                            {redoStack.length}
+                          </span>
+                        )}
+                      </Button>
+                    </div>
                     <div className="space-y-2 rounded-md border bg-muted/30 p-2">
                       <div className="flex items-center justify-between gap-2">
                         <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
