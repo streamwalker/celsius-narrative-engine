@@ -1877,6 +1877,15 @@ ASTRA: "Too quiet."`}
                           <div className="pointer-events-none absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-br-md bg-emerald-500 font-mono text-sm font-bold text-white shadow">
                             {p.index}
                           </div>
+                          <div className="pointer-events-none absolute left-0 top-7 max-w-full rounded-br-md bg-emerald-500/85 px-1.5 py-0.5 font-mono text-[9px] leading-tight text-white shadow-sm">
+                            <div>x {(p.x * 100).toFixed(1)}% · y {(p.y * 100).toFixed(1)}%</div>
+                            <div>w {(p.w * 100).toFixed(1)}% · h {(p.h * 100).toFixed(1)}%</div>
+                            <div>x2 {((p.x + p.w) * 100).toFixed(1)}% · y2 {((p.y + p.h) * 100).toFixed(1)}%</div>
+                            <div>
+                              speakers {p.speakers.length}
+                              {p.speakers.length > 0 ? ` · ${p.speakers.map((s) => s.name).join(', ')}` : ''}
+                            </div>
+                          </div>
                           <div className="pointer-events-none absolute bottom-0 right-0 rounded-tl-md bg-emerald-500/90 px-1.5 py-0.5 font-mono text-[9px] text-white">
                             {(p.w * 100).toFixed(1)}×{(p.h * 100).toFixed(1)}%
                             {isPinned ? ' · pinned' : ''}
