@@ -41,6 +41,13 @@ export interface PanelBubbleData {
    * re-runs placement. Lets manual fixes survive remapping.
    */
   locked?: boolean;
+  /**
+   * Optional override: name of the detected visible character this bubble's
+   * tail should point to. Used when one script speaker is mapped to multiple
+   * detected characters and the user wants a specific line to target a
+   * specific character.
+   */
+  tailTarget?: string;
 }
 
 export interface Speaker {
