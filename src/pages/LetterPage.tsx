@@ -1747,10 +1747,18 @@ ASTRA: "Too quiet."`}
                           source: 'mapped',
                         });
                       }
+                      const activeDebugPanel = showPanelDebug
+                        ? pinnedDebugPanel ?? hoveredDebugPanel
+                        : null;
+                      const isActive = activeDebugPanel === p.index;
+                      const isDimmed = activeDebugPanel != null && !isActive;
                       return (
                         <div
                           key={key}
-                          className="lp-bubble-overlay absolute"
+                          className={cn(
+                            'lp-bubble-overlay absolute transition-opacity duration-150',
+                            isDimmed && 'opacity-20',
+                          )}
                           style={{
                             left: `${p.x * 100}%`,
                             top: `${p.y * 100}%`,
@@ -1758,7 +1766,12 @@ ASTRA: "Too quiet."`}
                             height: `${p.h * 100}%`,
                           }}
                         >
-                          <div className="pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30" />
+                          <div
+                            className={cn(
+                              'pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30',
+                              isActive && 'ring-2 ring-emerald-400',
+                            )}
+                          />
                           <div className="absolute -top-5 left-0 font-mono text-[10px] text-primary/70">
                             Panel {p.index}
                           </div>
