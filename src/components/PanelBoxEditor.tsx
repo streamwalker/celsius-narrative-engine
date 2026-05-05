@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 
 export interface PanelBox {
@@ -15,6 +15,12 @@ interface Props {
   onChange: (next: PanelBox[]) => void;
   /** When true, dragging on empty space draws a new panel. */
   enabled: boolean;
+  /** Grid step in normalized units (0..1). 0 disables grid snapping. */
+  gridSize?: number;
+  /** Snap to other panels' edges within tolerance. */
+  snapToEdges?: boolean;
+  /** Snap tolerance in normalized units (default 0.01). */
+  snapTolerance?: number;
 }
 
 type DragMode =
@@ -30,14 +36,28 @@ type DragMode =
 
 const MIN_SIZE = 0.03;
 
+interface SnapGuide {
+  orientation: 'v' | 'h';
+  /** Normalized 0..1 position */
+  pos: number;
+}
+
 /**
  * Overlay that lets the user draw, drag, resize, renumber, and delete
  * panel rectangles on top of the page artwork.
  */
-export function PanelBoxEditor({ panels, onChange, enabled }: Props) {
+export function PanelBoxEditor({
+  panels,
+  onChange,
+  enabled,
+  gridSize = 0,
+  snapToEdges = false,
+  snapTolerance = 0.01,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragMode>(null);
   const [draftRect, setDraftRect] = useState<PanelBox | null>(null);
+  const [guides, setGuides] = useState<SnapGuide[]>([]);
 
   const localCoords = (e: React.MouseEvent | MouseEvent) => {
     const el = containerRef.current;
@@ -49,15 +69,68 @@ export function PanelBoxEditor({ panels, onChange, enabled }: Props) {
     };
   };
 
+  /**
+   * Snap a single coordinate to the nearest grid line and/or candidate
+   * targets (edges from other panels + page borders). Returns the new
+   * value and an optional guide line to render.
+   */
+  const snapCoord = (value: number, candidates: number[], orientation: 'v' | 'h') => {
+    let best = value;
+    let bestGuide: SnapGuide | null = null;
+    let bestDelta = Infinity;
+
+    if (gridSize && gridSize > 0) {
+      const snapped = Math.round(value / gridSize) * gridSize;
+      const d = Math.abs(snapped - value);
+      if (d <= snapTolerance && d < bestDelta) {
+        best = snapped;
+        bestGuide = { orientation, pos: snapped };
+        bestDelta = d;
+      }
+    }
+    if (snapToEdges) {
+      for (const c of candidates) {
+        const d = Math.abs(c - value);
+        if (d <= snapTolerance && d < bestDelta) {
+          best = c;
+          bestGuide = { orientation, pos: c };
+          bestDelta = d;
+        }
+      }
+    }
+    return { value: best, guide: bestGuide };
+  };
+
+  /** Build edge candidate lists from all panels except the one being edited. */
+  const edgeCandidates = useMemo(() => {
+    return (excludeIdx: number | null) => {
+      const xs: number[] = [0, 1];
+      const ys: number[] = [0, 1];
+      panels.forEach((p, i) => {
+        if (i === excludeIdx) return;
+        xs.push(p.x, p.x + p.w);
+        ys.push(p.y, p.y + p.h);
+      });
+      return { xs, ys };
+    };
+  }, [panels]);
+
   useEffect(() => {
     if (!drag) return;
     const onMove = (e: MouseEvent) => {
-      const { x, y } = localCoords(e);
+      const { x: rawX, y: rawY } = localCoords(e);
+      const collected: SnapGuide[] = [];
+
       if (drag.type === 'create') {
-        const nx = Math.min(drag.startX, x);
-        const ny = Math.min(drag.startY, y);
-        const nw = Math.abs(x - drag.startX);
-        const nh = Math.abs(y - drag.startY);
+        const { xs, ys } = edgeCandidates(null);
+        const sx = snapCoord(rawX, xs, 'v');
+        const sy = snapCoord(rawY, ys, 'h');
+        if (sx.guide) collected.push(sx.guide);
+        if (sy.guide) collected.push(sy.guide);
+        const nx = Math.min(drag.startX, sx.value);
+        const ny = Math.min(drag.startY, sy.value);
+        const nw = Math.abs(sx.value - drag.startX);
+        const nh = Math.abs(sy.value - drag.startY);
         setDraftRect({
           index: panels.length + 1,
           x: nx,
@@ -69,21 +142,49 @@ export function PanelBoxEditor({ panels, onChange, enabled }: Props) {
         const next = panels.slice();
         const p = next[drag.index];
         if (!p) return;
-        const nx = Math.max(0, Math.min(1 - p.w, x - drag.offsetX));
-        const ny = Math.max(0, Math.min(1 - p.h, y - drag.offsetY));
+        const { xs, ys } = edgeCandidates(drag.index);
+        // Snap left edge; right edge follows from width.
+        const targetX = rawX - drag.offsetX;
+        const targetY = rawY - drag.offsetY;
+        const sxLeft = snapCoord(targetX, xs, 'v');
+        const sxRight = snapCoord(targetX + p.w, xs, 'v');
+        let nx = sxLeft.value;
+        if (sxRight.guide && (!sxLeft.guide || Math.abs(sxRight.value - (targetX + p.w)) < Math.abs(sxLeft.value - targetX))) {
+          nx = sxRight.value - p.w;
+          if (sxRight.guide) collected.push(sxRight.guide);
+        } else if (sxLeft.guide) {
+          collected.push(sxLeft.guide);
+        }
+        const syTop = snapCoord(targetY, ys, 'h');
+        const syBot = snapCoord(targetY + p.h, ys, 'h');
+        let ny = syTop.value;
+        if (syBot.guide && (!syTop.guide || Math.abs(syBot.value - (targetY + p.h)) < Math.abs(syTop.value - targetY))) {
+          ny = syBot.value - p.h;
+          if (syBot.guide) collected.push(syBot.guide);
+        } else if (syTop.guide) {
+          collected.push(syTop.guide);
+        }
+        nx = Math.max(0, Math.min(1 - p.w, nx));
+        ny = Math.max(0, Math.min(1 - p.h, ny));
         next[drag.index] = { ...p, x: nx, y: ny };
         onChange(next);
       } else if (drag.type === 'resize') {
         const next = panels.slice();
         const p = next[drag.index];
         if (!p) return;
-        const nx = Math.min(drag.anchorX, x);
-        const ny = Math.min(drag.anchorY, y);
-        const nw = Math.max(MIN_SIZE, Math.abs(x - drag.anchorX));
-        const nh = Math.max(MIN_SIZE, Math.abs(y - drag.anchorY));
+        const { xs, ys } = edgeCandidates(drag.index);
+        const sx = snapCoord(rawX, xs, 'v');
+        const sy = snapCoord(rawY, ys, 'h');
+        if (sx.guide) collected.push(sx.guide);
+        if (sy.guide) collected.push(sy.guide);
+        const nx = Math.min(drag.anchorX, sx.value);
+        const ny = Math.min(drag.anchorY, sy.value);
+        const nw = Math.max(MIN_SIZE, Math.abs(sx.value - drag.anchorX));
+        const nh = Math.max(MIN_SIZE, Math.abs(sy.value - drag.anchorY));
         next[drag.index] = { ...p, x: nx, y: ny, w: nw, h: nh };
         onChange(next);
       }
+      setGuides(collected);
     };
     const onUp = () => {
       if (drag.type === 'create' && draftRect && draftRect.w > MIN_SIZE && draftRect.h > MIN_SIZE) {
@@ -92,6 +193,7 @@ export function PanelBoxEditor({ panels, onChange, enabled }: Props) {
       }
       setDrag(null);
       setDraftRect(null);
+      setGuides([]);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -99,17 +201,19 @@ export function PanelBoxEditor({ panels, onChange, enabled }: Props) {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [drag, draftRect, panels, onChange]);
+  }, [drag, draftRect, panels, onChange, gridSize, snapToEdges, snapTolerance, edgeCandidates]);
 
   const handleBackgroundDown = (e: React.MouseEvent) => {
     if (!enabled) return;
     if (e.button !== 0) return;
-    // Only start a draw if the click was on the container itself
     if (e.target !== e.currentTarget) return;
     e.preventDefault();
-    const { x, y } = localCoords(e);
-    setDrag({ type: 'create', startX: x, startY: y });
-    setDraftRect({ index: panels.length + 1, x, y, w: 0, h: 0 });
+    const raw = localCoords(e);
+    const { xs, ys } = edgeCandidates(null);
+    const sx = snapCoord(raw.x, xs, 'v');
+    const sy = snapCoord(raw.y, ys, 'h');
+    setDrag({ type: 'create', startX: sx.value, startY: sy.value });
+    setDraftRect({ index: panels.length + 1, x: sx.value, y: sy.value, w: 0, h: 0 });
   };
 
   const handlePanelDown = (e: React.MouseEvent, idx: number) => {
@@ -134,12 +238,44 @@ export function PanelBoxEditor({ panels, onChange, enabled }: Props) {
     onChange(next);
   };
 
+  // Build static grid line positions for visual reference.
+  const gridLines = useMemo(() => {
+    if (!enabled || !gridSize || gridSize <= 0) return { v: [] as number[], h: [] as number[] };
+    const v: number[] = [];
+    const h: number[] = [];
+    for (let p = gridSize; p < 1 - 1e-6; p += gridSize) {
+      v.push(p);
+      h.push(p);
+    }
+    return { v, h };
+  }, [enabled, gridSize]);
+
   return (
     <div
       ref={containerRef}
       className={`absolute inset-0 ${enabled ? 'cursor-crosshair' : 'pointer-events-none'}`}
       onMouseDown={handleBackgroundDown}
     >
+      {/* Grid overlay */}
+      {enabled && (gridLines.v.length > 0 || gridLines.h.length > 0) && (
+        <div className="pointer-events-none absolute inset-0">
+          {gridLines.v.map((p) => (
+            <div
+              key={`gv-${p}`}
+              className="absolute top-0 bottom-0 w-px bg-primary/10"
+              style={{ left: `${p * 100}%` }}
+            />
+          ))}
+          {gridLines.h.map((p) => (
+            <div
+              key={`gh-${p}`}
+              className="absolute left-0 right-0 h-px bg-primary/10"
+              style={{ top: `${p * 100}%` }}
+            />
+          ))}
+        </div>
+      )}
+
       {panels.map((p, idx) => (
         <div
           key={idx}
@@ -188,6 +324,22 @@ export function PanelBoxEditor({ panels, onChange, enabled }: Props) {
             height: `${draftRect.h * 100}%`,
           }}
         />
+      )}
+      {/* Active snap guides */}
+      {guides.map((g, i) =>
+        g.orientation === 'v' ? (
+          <div
+            key={`sg-${i}`}
+            className="pointer-events-none absolute top-0 bottom-0 w-px bg-amber-400 shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+            style={{ left: `${g.pos * 100}%` }}
+          />
+        ) : (
+          <div
+            key={`sg-${i}`}
+            className="pointer-events-none absolute left-0 right-0 h-px bg-amber-400 shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+            style={{ top: `${g.pos * 100}%` }}
+          />
+        )
       )}
     </div>
   );
