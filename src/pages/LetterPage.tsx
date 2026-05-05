@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -8,7 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toPng } from 'html-to-image';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toPng, toSvg } from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
