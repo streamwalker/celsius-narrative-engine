@@ -94,6 +94,63 @@ export default function LetterPage() {
 
   const exportRef = useRef<HTMLDivElement>(null);
 
+  // ---- Undo / redo for panel editing ----
+  type EditSnapshot = {
+    panels: DetectedPanel[];
+    bubblesByPanel: Record<string, PanelBubbleData[]>;
+  };
+  const [undoStack, setUndoStack] = useState<EditSnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<EditSnapshot[]>([]);
+  const HISTORY_LIMIT = 50;
+  const cloneSnap = (): EditSnapshot => ({
+    panels: JSON.parse(JSON.stringify(panels)),
+    bubblesByPanel: JSON.parse(JSON.stringify(bubblesByPanel)),
+  });
+  const pushHistory = useCallback(() => {
+    setUndoStack((s) => {
+      const snap: EditSnapshot = {
+        panels: JSON.parse(JSON.stringify(panels)),
+        bubblesByPanel: JSON.parse(JSON.stringify(bubblesByPanel)),
+      };
+      const next = [...s, snap];
+      if (next.length > HISTORY_LIMIT) next.shift();
+      return next;
+    });
+    setRedoStack([]);
+  }, [panels, bubblesByPanel]);
+  const handleUndo = useCallback(() => {
+    setUndoStack((u) => {
+      if (u.length === 0) return u;
+      const prev = u[u.length - 1];
+      setRedoStack((r) => {
+        const cur: EditSnapshot = {
+          panels: JSON.parse(JSON.stringify(panels)),
+          bubblesByPanel: JSON.parse(JSON.stringify(bubblesByPanel)),
+        };
+        return [...r, cur];
+      });
+      setPanels(prev.panels);
+      setBubblesByPanel(prev.bubblesByPanel);
+      return u.slice(0, -1);
+    });
+  }, [panels, bubblesByPanel]);
+  const handleRedo = useCallback(() => {
+    setRedoStack((r) => {
+      if (r.length === 0) return r;
+      const next = r[r.length - 1];
+      setUndoStack((u) => {
+        const cur: EditSnapshot = {
+          panels: JSON.parse(JSON.stringify(panels)),
+          bubblesByPanel: JSON.parse(JSON.stringify(bubblesByPanel)),
+        };
+        return [...u, cur];
+      });
+      setPanels(next.panels);
+      setBubblesByPanel(next.bubblesByPanel);
+      return r.slice(0, -1);
+    });
+  }, [panels, bubblesByPanel]);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_e, session) => setUser(session?.user ?? null)
