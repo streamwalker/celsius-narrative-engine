@@ -75,6 +75,7 @@ export default function LetterPage() {
   const [panMode, setPanMode] = useState(false);
   const [zoomAnchor, setZoomAnchor] = useState<'cursor' | 'viewport'>('cursor');
   const viewportRef = useRef<HTMLDivElement>(null);
+  const skipNextViewSave = useRef(false);
   // Region-constrained re-detection
   const [regionMode, setRegionMode] = useState(false);
   const [region, setRegion] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
