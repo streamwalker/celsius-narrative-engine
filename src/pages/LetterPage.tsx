@@ -73,6 +73,7 @@ export default function LetterPage() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [panMode, setPanMode] = useState(false);
+  const [zoomAnchor, setZoomAnchor] = useState<'cursor' | 'viewport'>('cursor');
   const viewportRef = useRef<HTMLDivElement>(null);
   // Region-constrained re-detection
   const [regionMode, setRegionMode] = useState(false);
