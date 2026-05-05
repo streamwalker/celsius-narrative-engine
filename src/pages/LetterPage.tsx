@@ -185,7 +185,8 @@ export default function LetterPage() {
       }
       setPanels(detected);
       setSpeakers(buildSpeakerRoster(characterRoster));
-      placeBubbles(detected);
+      setSpeakerMap({});
+      placeBubbles(detected, {});
       toast({ title: `Detected ${detected.length} panels — drag bubbles to fine-tune.` });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Analysis failed';
