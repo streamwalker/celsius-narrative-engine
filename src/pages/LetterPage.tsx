@@ -673,6 +673,7 @@ export default function LetterPage() {
         return;
       }
       const merged = mergePanels(panels, inRegion);
+      pushHistory();
       setPanels(merged);
       placeBubbles(merged, speakerMap);
       const added = merged.length - panels.length;
