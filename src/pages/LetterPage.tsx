@@ -857,6 +857,7 @@ ASTRA: "Too quiet."`}
           )}
         </div>
       </div>
+      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
     </div>
   );
 }
