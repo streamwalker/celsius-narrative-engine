@@ -1499,6 +1499,17 @@ ASTRA: "Too quiet."`}
                 >
                   <Hand className="h-3.5 w-3.5" />
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-[10px]"
+                  onClick={() =>
+                    setZoomAnchor((a) => (a === 'cursor' ? 'viewport' : 'cursor'))
+                  }
+                  title="Toggle wheel-zoom anchor between cursor and viewport center"
+                >
+                  Zoom: {zoomAnchor === 'cursor' ? 'Cursor' : 'Center'}
+                </Button>
                 <span className="ml-auto text-[10px] text-muted-foreground">
                   Wheel = zoom · Space / middle drag = pan
                 </span>
