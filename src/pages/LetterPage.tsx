@@ -68,7 +68,38 @@ export default function LetterPage() {
 
   const [editingPanels, setEditingPanels] = useState(false);
 
+  // ---- Library / persistence ----
+  const [user, setUser] = useState<User | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [title, setTitle] = useState('Untitled Lettering');
+  const [savedImagePath, setSavedImagePath] = useState<string | null>(null);
+  const [pendingImageDataUrl, setPendingImageDataUrl] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [library, setLibrary] = useState<LetteringSummary[]>([]);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [loadingProject, setLoadingProject] = useState(false);
+
   const exportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_e, session) => setUser(session?.user ?? null)
+    );
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const refreshLibrary = useCallback(async () => {
+    if (!user) return;
+    try {
+      setLibrary(await listLetteringProjects(user.id));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [user]);
+
+  useEffect(() => { refreshLibrary(); }, [refreshLibrary]);
 
   // ---- Upload handler -------------------------------------------------------
   const onFile = (f: File | null) => {
