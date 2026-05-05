@@ -101,6 +101,95 @@ export default function LetterPage() {
 
   useEffect(() => { refreshLibrary(); }, [refreshLibrary]);
 
+  const handleSave = async () => {
+    if (!user) { setAuthOpen(true); return; }
+    if (!imageUrl) {
+      toast({ title: 'Upload artwork before saving.', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const id = await saveLetteringProject({
+        id: projectId,
+        userId: user.id,
+        title,
+        scriptText,
+        panels,
+        bubblesByPanel,
+        speakerMap,
+        newImageDataUrl: pendingImageDataUrl,
+        existingImagePath: savedImagePath,
+      });
+      setProjectId(id);
+      setPendingImageDataUrl(null);
+      const { row, imageUrl: signed } = await loadLetteringProject(id);
+      setSavedImagePath(row.image_path);
+      if (signed) setImageUrl(signed);
+      await refreshLibrary();
+      toast({ title: 'Saved to your library.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Save failed', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLoad = async (id: string) => {
+    setLoadingProject(true);
+    try {
+      const { row, imageUrl: signed } = await loadLetteringProject(id);
+      setProjectId(row.id);
+      setTitle(row.title);
+      setScriptText(row.script_text || '');
+      setPanels(row.panels || []);
+      setBubblesByPanel(row.bubbles_by_panel || {});
+      setSpeakerMap(row.speaker_map || {});
+      setSpeakers(buildSpeakerRoster(
+        Array.from(new Set((row.panels || []).flatMap((p) => p.speakers.map((s) => s.name))))
+      ));
+      setSavedImagePath(row.image_path);
+      setPendingImageDataUrl(null);
+      setImageDataUrl(null);
+      setImageUrl(signed);
+      setLibraryOpen(false);
+      toast({ title: `Loaded "${row.title}"` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Load failed', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setLoadingProject(false);
+    }
+  };
+
+  const handleNew = () => {
+    setProjectId(null);
+    setTitle('Untitled Lettering');
+    setScriptText('');
+    setPanels([]);
+    setBubblesByPanel({});
+    setSpeakerMap({});
+    setSpeakers([]);
+    setImageUrl(null);
+    setImageDataUrl(null);
+    setPendingImageDataUrl(null);
+    setSavedImagePath(null);
+    setError(null);
+  };
+
+  const handleDeleteProject = async (id: string, imagePath: string | null) => {
+    if (!confirm('Delete this lettering project?')) return;
+    try {
+      await deleteLetteringProject(id, imagePath);
+      if (projectId === id) handleNew();
+      await refreshLibrary();
+      toast({ title: 'Deleted' });
+    } catch (e) {
+      toast({ title: 'Delete failed', description: (e as Error).message, variant: 'destructive' });
+    }
+  };
+
+
   // ---- Upload handler -------------------------------------------------------
   const onFile = (f: File | null) => {
     if (!f) return;
