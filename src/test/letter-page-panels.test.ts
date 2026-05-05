@@ -101,10 +101,8 @@ describe('letter-page-panels.cleanPanels', () => {
 
   it('returns [] for non-array / empty input', () => {
     expect(cleanPanels([])).toEqual([]);
-    // @ts-expect-error testing runtime tolerance
-    expect(cleanPanels(null)).toEqual([]);
-    // @ts-expect-error testing runtime tolerance
-    expect(cleanPanels(undefined)).toEqual([]);
+    expect(cleanPanels(null as unknown as never[])).toEqual([]);
+    expect(cleanPanels(undefined as unknown as never[])).toEqual([]);
   });
 
   it('strips invalid speaker entries while keeping valid ones', () => {
