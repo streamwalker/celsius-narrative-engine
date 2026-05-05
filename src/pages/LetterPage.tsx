@@ -746,15 +746,85 @@ ASTRA: "Too quiet."`}
           {panels.length > 0 && uncertainScriptSpeakers.length > 0 && (
             <Card>
               <CardContent className="space-y-3 p-4">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-                    Map uncertain speakers
-                  </label>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                      Map uncertain speakers
+                    </label>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px]"
+                    onClick={() => {
+                      const next: Record<string, string> = { ...speakerMap };
+                      const norm = (s: string) =>
+                        s.toLowerCase().replace(/[^a-z0-9]+/g, '');
+                      // Score name similarity 0..1 (token / substring / shared chars)
+                      const nameScore = (a: string, b: string) => {
+                        const na = norm(a);
+                        const nb = norm(b);
+                        if (!na || !nb) return 0;
+                        if (na === nb) return 1;
+                        if (na.includes(nb) || nb.includes(na)) return 0.85;
+                        const at = new Set(a.toLowerCase().split(/\s+/).filter(Boolean));
+                        const bt = new Set(b.toLowerCase().split(/\s+/).filter(Boolean));
+                        let shared = 0;
+                        for (const t of at) if (bt.has(t)) shared++;
+                        const tokenJ = shared / Math.max(1, at.size + bt.size - shared);
+                        // Char-overlap fallback
+                        const setA = new Set(na);
+                        let charShared = 0;
+                        for (const c of nb) if (setA.has(c)) charShared++;
+                        const charJ = charShared / Math.max(na.length, nb.length);
+                        return Math.max(tokenJ, charJ * 0.6);
+                      };
+                      // Build per-script-speaker panel set & average head position
+                      for (const scriptName of uncertainScriptSpeakers) {
+                        const key = scriptName.trim().toLowerCase();
+                        // Panels in which this script speaker has a line
+                        const panelIdxs: number[] = [];
+                        allParsedPanels.forEach((p, i) => {
+                          if (p.dialogues?.some((d) => d.speaker.trim().toLowerCase() === key)) {
+                            panelIdxs.push(i);
+                          }
+                        });
+                        // For each candidate detected speaker, score
+                        let best: { name: string; score: number } | null = null;
+                        for (const cand of detectedSpeakerNames) {
+                          const candKey = cand.trim().toLowerCase();
+                          // Skip if another uncertain speaker is already mapped here
+                          const taken = Object.entries(next).some(
+                            ([k, v]) => k !== key && v.trim().toLowerCase() === candKey
+                          );
+                          if (taken) continue;
+                          const ns = nameScore(scriptName, cand);
+                          // Co-presence: how often candidate appears in the same panels
+                          let coPresent = 0;
+                          for (const idx of panelIdxs) {
+                            const dp = panels[idx];
+                            if (dp?.speakers.some((s) => s.name.trim().toLowerCase() === candKey)) {
+                              coPresent++;
+                            }
+                          }
+                          const presence =
+                            panelIdxs.length > 0 ? coPresent / panelIdxs.length : 0;
+                          const score = ns * 0.65 + presence * 0.35;
+                          if (!best || score > best.score) best = { name: cand, score };
+                        }
+                        if (best && best.score > 0.15) next[key] = best.name;
+                      }
+                      setSpeakerMap(next);
+                    }}
+                  >
+                    Auto-map
+                  </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   These script speakers weren't matched to a visible character. Pick the closest one
-                  on the page so tails point correctly.
+                  on the page so tails point correctly, or use Auto-map to guess by name & position.
                 </p>
                 <div className="space-y-2">
                   {uncertainScriptSpeakers.map((name) => {
