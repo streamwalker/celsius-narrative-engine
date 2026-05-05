@@ -30,6 +30,7 @@ import Compliance from "./pages/legal/Compliance";
 import Dpa from "./pages/legal/Dpa";
 import AcceptableUse from "./pages/legal/AcceptableUse";
 import Patents from "./pages/legal/Patents";
+import AdminEmailLogs from "./pages/AdminEmailLogs";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/dpa" element={<Dpa />} />
             <Route path="/acceptable-use" element={<AcceptableUse />} />
             <Route path="/patents" element={<Patents />} />
+            <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
