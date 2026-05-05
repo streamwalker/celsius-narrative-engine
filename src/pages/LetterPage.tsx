@@ -213,6 +213,8 @@ export default function LetterPage() {
       setScriptText(row.script_text || '');
       setPanels(row.panels || []);
       setBubblesByPanel(row.bubbles_by_panel || {});
+      setUndoStack([]);
+      setRedoStack([]);
       // Backward-compat: legacy projects stored string values; coerce to arrays.
       const rawMap = (row.speaker_map || {}) as Record<string, string | string[]>;
       const normMap: Record<string, string[]> = {};
