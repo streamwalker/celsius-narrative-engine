@@ -67,6 +67,7 @@ const App = () => (
             <Route path="/dpa" element={<Dpa />} />
             <Route path="/acceptable-use" element={<AcceptableUse />} />
             <Route path="/patents" element={<Patents />} />
+            <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
