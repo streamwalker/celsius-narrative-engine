@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ConsistencyCheckDialog } from '@/components/ConsistencyCheckDialog';
 import type { ComicPanelData } from '@/lib/comic-panel-parser';
+import { PanelBubbleEditor } from '@/components/PanelBubbleEditor';
+import type { PanelBubbleData, Speaker } from '@/lib/comic-bubbles';
 
 interface ComicPanelProps {
   panel: ComicPanelData;
@@ -15,6 +17,12 @@ interface ComicPanelProps {
   className?: string;
   /** Flag the panel as the page-ending beat on odd pages (cliffhanger). */
   emphasis?: 'cliffhanger' | 'reveal' | null;
+  /** Bubbles overlaid on this panel — managed by the parent page. */
+  bubbles?: PanelBubbleData[];
+  speakers?: Speaker[];
+  onBubblesChange?: (next: PanelBubbleData[]) => void;
+  /** Notifies parent when this panel's selected bubble changes (or null). */
+  onBubbleSelectionChange?: (bubbleId: string | null) => void;
 }
 
 export function ComicPanel({
@@ -26,8 +34,13 @@ export function ComicPanel({
   onDownload,
   className,
   emphasis,
+  bubbles,
+  speakers = [],
+  onBubblesChange,
+  onBubbleSelectionChange,
 }: ComicPanelProps) {
   const [consistencyOpen, setConsistencyOpen] = useState(false);
+  const editorEnabled = Boolean(bubbles && onBubblesChange);
 
   return (
     <div
@@ -94,6 +107,16 @@ export function ComicPanel({
               </p>
             </div>
           </div>
+        ) : imageUrl && editorEnabled ? (
+          <PanelBubbleEditor
+            imageUrl={imageUrl}
+            bubbles={bubbles!}
+            speakers={speakers}
+            onChange={onBubblesChange!}
+            onSelectionChange={onBubbleSelectionChange}
+            aspectRatio={4 / 3}
+            className="absolute inset-0"
+          />
         ) : imageUrl ? (
           <img src={imageUrl} alt={panel.description} className="w-full h-full object-cover" />
         ) : error ? (
@@ -117,8 +140,9 @@ export function ComicPanel({
         )}
       </div>
 
-      {/* Narration box (top) */}
-      {panel.narration && (imageUrl || !error) && (
+      {/* Legacy locked narration / dialogue — only shown when the editor is disabled
+          (i.e. caller hasn't migrated to the new bubble system). */}
+      {!editorEnabled && panel.narration && (imageUrl || !error) && (
         <div className="absolute top-8 left-2 right-2 z-10 pointer-events-none">
           <div
             className="bg-accent text-accent-foreground px-3 py-1.5 font-mono text-[11px] font-bold uppercase leading-tight"
@@ -128,9 +152,7 @@ export function ComicPanel({
           </div>
         </div>
       )}
-
-      {/* Speech bubble (bottom) */}
-      {panel.dialogue && (imageUrl || !error) && (
+      {!editorEnabled && panel.dialogue && (imageUrl || !error) && (
         <div className="absolute bottom-3 left-3 right-3 z-10 pointer-events-none">
           <div className="relative bg-background text-foreground border border-border rounded-lg px-3 py-2 font-mono text-[11px] font-bold uppercase leading-tight">
             {panel.dialogue}

@@ -1,33 +1,45 @@
+## What's in the zip
 
+`celsius-comic-creator.zip` contains a fork of the current project plus an inventory doc (`CELSIUS_INVENTORY_AND_GAPS.md`) comparing Celsius to jenova.ai's comic creator.
 
-## Plan: Logo images for CoA & Episode 7 pages
+Compared to the live project, the only code changes are a focused feature: **multi-bubble in-canvas panel editing** (gaps #3 and #6 in the inventory).
 
-The user wants visual consistency across all four storyplan pages. BA and Darker Ages already use logo images; CoA and Episode 7 still use text titles.
+### Files added (3)
+- `src/components/BubbleShape.tsx` (323 lines) — SVG shapes for speech / thought / shout / whisper / caption
+- `src/components/BubbleToolbar.tsx` (275 lines) — bubble kind + speaker + style controls
+- `src/components/PanelBubbleEditor.tsx` (460 lines) — drag/resize/edit overlay on top of a panel
 
-### Issue
-No logos have been uploaded for these two pages. I need source images before I can wire them in.
+### Files modified (3)
+- `src/components/ComicPanel.tsx` — wires PanelBubbleEditor in over the rendered image (166 → 188 lines)
+- `src/components/GraphicNovelPageLayout.tsx` — minor grid/layout tweaks (79 → 101 lines)
+- `src/pages/ComicPanels.tsx` — bubble state plumbing, save/load, export integration (383 → 490 lines)
 
-### Options
+### Unchanged
+- All 27 edge functions — identical
+- Both DB migrations — identical
+- `package.json`, `App.tsx`, parser, types — identical
+- All other pages (Astralnaut Studios, storyplans, character builder, etc.) — identical
 
-**Option A — User uploads logos (recommended)**
-User provides two images (one for CoA, one for EP7), I copy them to `src/assets/`, import them into `ChildrenOfAquarius.tsx` and `Episode7.tsx`, and replace the `<h1>` text with `<img>` tags using the same pattern as BA/Darker Ages:
-```tsx
-<img src={logo} alt="Children of Aquarius" className="mx-auto max-w-md w-full h-auto mb-2" />
-```
+So no DB migration, no new deps, no secrets, no routing changes.
 
-**Option B — Generate placeholder logos via AI**
-Use Lovable AI image generation (`google/gemini-3-pro-image-preview`) to create stylized logo treatments matching each storyplan's tone (cosmic/aquatic for CoA, sci-fi/military for EP7). User can swap them out later.
+## Evaluation
 
-**Option C — Stylized text treatment**
-Skip raster logos entirely; build CSS-styled text "logos" with custom fonts, glow, and layout that visually match the weight of the BA/DA image logos. No new assets needed.
+**Pros**
+- Pure additive UI feature, narrowly scoped to the comic panel surface.
+- No schema changes — bubble state lives in component state and the existing `comic_panels.dialogue` / `narration` columns (or in-memory only; will confirm during implementation).
+- Doesn't touch any of the storyplan pages we've been iterating on.
+- Closes two of the largest jenova-parity gaps.
 
-### My recommendation
-**Option A.** The BA and Darker Ages logos are clearly hand-crafted artwork — auto-generated images won't match that quality, and CSS text won't match that visual weight. Best to wait for real artwork.
+**Cautions**
+- Bubble positions/kinds aren't in the DB schema — if the new editor only persists to local state, edits will be lost on reload. Worth a quick look at `ComicPanels.tsx` save path during deploy.
+- Need a typecheck pass after copying since three files swap in larger versions.
 
-### Action needed
-Please either:
-1. Upload the two logo images (PNG or JPEG), or
-2. Tell me to proceed with Option B or C.
+## Deployment plan
 
-Once I have the assets (or your go-ahead on B/C), the wiring itself is ~10 lines per page and mirrors the BA/DA pattern exactly.
+1. Copy the three new component files into `src/components/`.
+2. Overwrite `src/components/ComicPanel.tsx`, `src/components/GraphicNovelPageLayout.tsx`, and `src/pages/ComicPanels.tsx` with the zip versions.
+3. Let the harness typecheck/build; fix any import or type mismatch that surfaces.
+4. Spot-check `/comic-panels/:draftId` in preview to confirm the bubble overlay renders and existing panels still load.
+5. Report back what persists vs. what's local-only so you can decide whether to add a follow-up migration for `bubbles` JSON.
 
+Nothing else from the zip (the inventory doc, lockfiles, vite timestamp files) needs to be deployed.

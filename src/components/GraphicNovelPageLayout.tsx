@@ -1,5 +1,6 @@
 import { ComicPanel } from './ComicPanel';
 import type { ComicPage } from '@/lib/comic-panel-parser';
+import type { BubblesByPanel, PanelBubbleData, Speaker } from '@/lib/comic-bubbles';
 
 interface GraphicNovelPageLayoutProps {
   page: ComicPage;
@@ -8,6 +9,11 @@ interface GraphicNovelPageLayoutProps {
   errors: Record<string, string>;
   onRegenerate: (panelKey: string) => void;
   onDownloadPanel: (panelKey: string) => void;
+  /** Bubbles per panel keyed by panelKey. */
+  bubblesByPanel?: BubblesByPanel;
+  speakers?: Speaker[];
+  onPanelBubblesChange?: (panelKey: string, next: PanelBubbleData[]) => void;
+  onPanelBubbleSelectionChange?: (panelKey: string, bubbleId: string | null) => void;
 }
 
 function gridClassForPanelCount(count: number): string {
@@ -34,6 +40,10 @@ export function GraphicNovelPageLayout({
   errors,
   onRegenerate,
   onDownloadPanel,
+  bubblesByPanel,
+  speakers,
+  onPanelBubblesChange,
+  onPanelBubbleSelectionChange,
 }: GraphicNovelPageLayoutProps) {
   const spreadPosition = page.isOdd ? 'Right (Recto)' : 'Left (Verso)';
 
@@ -69,6 +79,18 @@ export function GraphicNovelPageLayout({
                 emphasis={emphasis}
                 onRegenerate={() => onRegenerate(panel.panelKey)}
                 onDownload={images[panel.panelKey] ? () => onDownloadPanel(panel.panelKey) : undefined}
+                bubbles={bubblesByPanel?.[panel.panelKey]}
+                speakers={speakers}
+                onBubblesChange={
+                  onPanelBubblesChange
+                    ? (next) => onPanelBubblesChange(panel.panelKey, next)
+                    : undefined
+                }
+                onBubbleSelectionChange={
+                  onPanelBubbleSelectionChange
+                    ? (bubbleId) => onPanelBubbleSelectionChange(panel.panelKey, bubbleId)
+                    : undefined
+                }
               />
             );
           })}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Wand2, Loader2, Download, AlertCircle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,17 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthModal } from '@/components/AuthModal';
 import { GraphicNovelPageLayout } from '@/components/GraphicNovelPageLayout';
+import { BubbleToolbar } from '@/components/BubbleToolbar';
 import { parseComicScript, buildPanelPrompt, type ComicPanelData, type ComicPage } from '@/lib/comic-panel-parser';
+import {
+  loadBubblesForDraft,
+  saveBubblesForDraft,
+  seedBubblesFromScript,
+  buildSpeakerRoster,
+  type BubblesByPanel,
+  type PanelBubbleData,
+  type Speaker,
+} from '@/lib/comic-bubbles';
 import type { User } from '@supabase/supabase-js';
 
 interface DraftRow {
@@ -32,6 +42,11 @@ export default function ComicPanels() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isBatchRunning, setIsBatchRunning] = useState(false);
   const [batchAborted, setBatchAborted] = useState(false);
+
+  // ---- Bubble overlay state -------------------------------------------------
+  const [bubblesByPanel, setBubblesByPanel] = useState<BubblesByPanel>({});
+  const [speakers, setSpeakers] = useState<Speaker[]>([]);
+  const [activeBubblePanelKey, setActiveBubblePanelKey] = useState<string | null>(null);
 
   useEffect(() => {
     const {
@@ -69,6 +84,76 @@ export default function ComicPanels() {
   }, [draft]);
 
   const allPanels: ComicPanelData[] = useMemo(() => pages.flatMap((p) => p.panels), [pages]);
+
+  // Names parsed from dialogue cues across the whole script — surfaced as
+  // speaker suggestion chips in the BubbleToolbar.
+  const parsedCharacterNames = useMemo<string[]>(() => {
+    const set = new Set<string>();
+    for (const p of allPanels) for (const c of p.characters) set.add(c);
+    return Array.from(set);
+  }, [allPanels]);
+
+  // ---- Initialize bubbles + speakers from localStorage / script seed -------
+  useEffect(() => {
+    if (!draftId || allPanels.length === 0) return;
+
+    const stored = loadBubblesForDraft(draftId);
+    const next: BubblesByPanel = {};
+    for (const panel of allPanels) {
+      const existing = stored[panel.panelKey];
+      if (existing && existing.length > 0) {
+        next[panel.panelKey] = existing;
+      } else {
+        const seeded = seedBubblesFromScript({
+          narration: panel.narration,
+          dialogue: panel.dialogue,
+          characters: panel.characters,
+        });
+        if (seeded.length > 0) next[panel.panelKey] = seeded;
+      }
+    }
+    setBubblesByPanel(next);
+
+    // Seed the speaker roster from any character names found in the script.
+    setSpeakers((prev) => {
+      if (prev.length > 0) return prev;
+      return buildSpeakerRoster(parsedCharacterNames);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId, allPanels.length]);
+
+  // Persist bubbles whenever they change.
+  useEffect(() => {
+    if (!draftId) return;
+    saveBubblesForDraft(draftId, bubblesByPanel);
+  }, [draftId, bubblesByPanel]);
+
+  const handlePanelBubblesChange = useCallback((panelKey: string, next: PanelBubbleData[]) => {
+    setBubblesByPanel((prev) => ({ ...prev, [panelKey]: next }));
+  }, []);
+
+  const handlePanelBubbleSelectionChange = useCallback((panelKey: string, bubbleId: string | null) => {
+    setActiveBubblePanelKey((prev) => {
+      if (bubbleId) return panelKey;
+      return prev === panelKey ? null : prev;
+    });
+  }, []);
+
+  const handleAddBubbleToActivePanel = useCallback((bubble: PanelBubbleData) => {
+    // If no panel is selected, default to the first panel that already has an image.
+    let target = activeBubblePanelKey;
+    if (!target) {
+      target = allPanels.find((p) => images[p.panelKey])?.panelKey ?? allPanels[0]?.panelKey ?? null;
+    }
+    if (!target) return;
+    setActiveBubblePanelKey(target);
+    setBubblesByPanel((prev) => ({
+      ...prev,
+      [target!]: [...(prev[target!] ?? []), bubble],
+    }));
+  }, [activeBubblePanelKey, allPanels, images]);
+
+  const activePanelBubbles = activeBubblePanelKey ? (bubblesByPanel[activeBubblePanelKey] ?? []) : [];
 
   const completed = allPanels.filter((p) => images[p.panelKey]).length;
   const total = allPanels.length;
@@ -292,11 +377,29 @@ export default function ComicPanels() {
         </div>
 
         {total > 0 && (
-          <div className="mb-8 flex items-center gap-3">
+          <div className="mb-4 flex items-center gap-3">
             <Progress value={progress} className="h-1.5 flex-1" />
             <span className="font-mono text-xs text-muted-foreground tabular-nums">
               {completed} / {total}
             </span>
+          </div>
+        )}
+
+        {/* Bubble toolbar — sticky so it follows the user as they scroll. */}
+        {completed > 0 && (
+          <div className="sticky top-2 z-20 mb-4">
+            <BubbleToolbar
+              bubbles={activePanelBubbles}
+              speakers={speakers}
+              onAddBubble={handleAddBubbleToActivePanel}
+              onSpeakersChange={setSpeakers}
+              suggestedSpeakers={parsedCharacterNames}
+            />
+            {activeBubblePanelKey && (
+              <p className="mt-1 px-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Editing bubbles on panel {activeBubblePanelKey} — click another panel's bubble to switch.
+              </p>
+            )}
           </div>
         )}
 
@@ -309,6 +412,10 @@ export default function ComicPanels() {
             errors={errors}
             onRegenerate={handleRegenerate}
             onDownloadPanel={handleDownloadPanel}
+            bubblesByPanel={bubblesByPanel}
+            speakers={speakers}
+            onPanelBubblesChange={handlePanelBubblesChange}
+            onPanelBubbleSelectionChange={handlePanelBubbleSelectionChange}
           />
         ))}
       </div>
