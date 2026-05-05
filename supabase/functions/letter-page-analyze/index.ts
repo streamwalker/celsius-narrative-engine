@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { cleanPanels, type CleanPanel } from "../_shared/letter-page-panels.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,14 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface PanelOut {
-  index: number;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  speakers: { name: string; x: number; y: number }[];
-}
+type PanelOut = CleanPanel;
 
 const SYSTEM = `You analyze a single page of finished comic-book artwork to prepare it for lettering.
 
@@ -115,52 +109,7 @@ serve(async (req) => {
     }
 
     const panelsRaw: any[] = Array.isArray(parsed?.panels) ? parsed.panels : [];
-    const clamp = (v: any) => Math.max(0, Math.min(1, Number(v) || 0));
-    const mapped: PanelOut[] = panelsRaw.map((p, i): PanelOut => ({
-      index: Number.isFinite(p?.index) ? Number(p.index) : i + 1,
-      x: clamp(p?.x),
-      y: clamp(p?.y),
-      w: clamp(p?.w),
-      h: clamp(p?.h),
-      speakers: Array.isArray(p?.speakers)
-        ? p.speakers
-            .map((s: any) => ({
-              name: String(s?.name ?? "").trim(),
-              x: clamp(s?.x),
-              y: clamp(s?.y),
-            }))
-            .filter((s: any) => s.name)
-        : [],
-    }));
-
-    // 1. Drop tiny boxes and extreme aspect ratios (paper-thin strips).
-    const sane = mapped.filter((p) => {
-      if (p.w < 0.05 || p.h < 0.05) return false;
-      const ratio = p.w / p.h;
-      if (ratio > 8 || ratio < 1 / 8) return false;
-      return true;
-    });
-
-    // 2. Drop boxes that overlap an earlier (larger) box by >80% of the smaller area.
-    sane.sort((a, b) => b.w * b.h - a.w * a.h);
-    const kept: PanelOut[] = [];
-    for (const cand of sane) {
-      const overlaps = kept.some((k) => {
-        const ix = Math.max(0, Math.min(k.x + k.w, cand.x + cand.w) - Math.max(k.x, cand.x));
-        const iy = Math.max(0, Math.min(k.y + k.h, cand.y + cand.h) - Math.max(k.y, cand.y));
-        const inter = ix * iy;
-        const minA = Math.min(k.w * k.h, cand.w * cand.h);
-        return minA > 0 && inter / minA > 0.8;
-      });
-      if (!overlaps) kept.push(cand);
-    }
-
-    // 3. Re-sort into reading order (top→bottom, left→right) and re-index.
-    kept.sort((a, b) => {
-      if (Math.abs(a.y - b.y) > 0.05) return a.y - b.y;
-      return a.x - b.x;
-    });
-    const panels: PanelOut[] = kept.map((p, i) => ({ ...p, index: i + 1 }));
+    const panels: PanelOut[] = cleanPanels(panelsRaw);
 
     return json({ panels });
   } catch (err) {
