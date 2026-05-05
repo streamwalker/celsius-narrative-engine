@@ -67,6 +67,7 @@ export function PanelBubbleEditor({
   aspectRatio = 4 / 3,
   className,
   tailTargets,
+  transparentBackground,
 }: PanelBubbleEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragMode | null>(null);
@@ -196,20 +197,22 @@ export function PanelBubbleEditor({
       onPointerCancel={handlePointerUp}
     >
       {/* Background image / placeholder */}
-      <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted">
-        {imageUrl ? (
+      {imageUrl ? (
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted">
           <img
             src={imageUrl}
             alt=""
             className="h-full w-full object-cover"
             draggable={false}
           />
-        ) : (
+        </div>
+      ) : transparentBackground ? null : (
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted">
           <div className="flex h-full w-full items-center justify-center p-3 text-center text-[10px] text-muted-foreground">
             {placeholder ?? 'No image yet — generate the panel first.'}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* SVG shape layer — pointer events disabled so HTML overlays can receive them */}
       <svg

@@ -1752,6 +1752,7 @@ ASTRA: "Too quiet."`}
                             speakers={speakers}
                             aspectRatio={p.w && p.h ? p.w / p.h : 1}
                             className="!h-full"
+                            transparentBackground
                             tailTargets={p.speakers.map((s) => ({
                               name: s.name,
                               x: p.w > 0 ? Math.max(0, Math.min(1, (s.x - p.x) / p.w)) : 0.5,
