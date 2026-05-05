@@ -125,19 +125,42 @@ export default function LetterPage() {
           return head;
         };
 
-        const dialogueLines: { speaker: string; text: string; kind: 'speech' | 'thought' | 'shout' | 'whisper' }[] = [];
-        if (parsed?.dialogue) {
-          const speaker = parsed.characters[0] ?? '';
-          dialogueLines.push({ speaker, text: parsed.dialogue, kind: 'speech' });
-        }
+        const dialogueLines = parsed?.dialogues ?? [];
 
-        let cursorY = 0.04;
-        for (const dl of dialogueLines) {
+        // Estimate bubble height from text length so multiple lines fit nicely.
+        const estimateHeight = (text: string) => {
+          const charsPerLine = 22;
+          const approxLines = Math.max(1, Math.ceil(text.length / charsPerLine));
+          // 0.07 base + 0.045 per estimated text line, capped
+          return Math.min(0.32, 0.07 + approxLines * 0.045);
+        };
+
+        // Reserve top room if narration caption was placed
+        const topReserve = parsed?.narration?.trim() ? 0.18 : 0.04;
+        let cursorY = topReserve;
+
+        const totalHeight = dialogueLines.reduce(
+          (acc, dl) => acc + estimateHeight(dl.text) + 0.02,
+          0
+        );
+        // If too tall, shrink each height proportionally to fit roughly within remaining space
+        const available = Math.max(0.2, 0.96 - cursorY);
+        const heightScale = totalHeight > available ? available / totalHeight : 1;
+
+        dialogueLines.forEach((dl, idx) => {
           const head = resolveHead(dl.speaker);
-          const bx = head ? Math.max(0.04, Math.min(0.55, head.x - 0.18)) : 0.06;
-          const by = cursorY;
-          const bw = 0.38;
-          const bh = 0.18;
+          const bw = Math.min(0.5, Math.max(0.28, dl.text.length / 70));
+          const bh = estimateHeight(dl.text) * heightScale;
+          // Horizontally bias bubble toward the speaker's side of the panel
+          let bx: number;
+          if (head) {
+            const desired = head.x - bw / 2;
+            bx = Math.max(0.03, Math.min(0.97 - bw, desired));
+          } else {
+            // Alternate left/right for unmapped lines so they don't overlap
+            bx = idx % 2 === 0 ? 0.04 : Math.max(0.04, 0.96 - bw);
+          }
+          const by = Math.min(0.97 - bh, cursorY);
           const bubble: PanelBubbleData = {
             id: Math.random().toString(36).slice(2, 10),
             kind: dl.kind,
@@ -150,8 +173,8 @@ export default function LetterPage() {
             speakerId: dl.speaker ? speakerIdFromName(dl.speaker) : undefined,
           };
           out.push(bubble);
-          cursorY += bh + 0.02;
-        }
+          cursorY = by + bh + 0.02;
+        });
 
         newBubbles[`p_${dp.index}`] = out;
       });

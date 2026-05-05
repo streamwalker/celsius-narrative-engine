@@ -15,6 +15,14 @@
  * { description, narration, dialogue, characters }.
  */
 
+export type DialogueKind = 'speech' | 'thought' | 'shout' | 'whisper';
+
+export interface DialogueLine {
+  speaker: string;
+  text: string;
+  kind: DialogueKind;
+}
+
 export interface ComicPanelData {
   /** Panel number within its page (1-indexed) */
   panelNumber: number;
@@ -24,8 +32,10 @@ export interface ComicPanelData {
   description: string;
   /** "Reads:" narration box content, if any */
   narration?: string;
-  /** First speech-bubble content (CHARACTER: "line"), if any */
+  /** First speech-bubble content (CHARACTER: "line"), if any. Kept for backward compatibility. */
   dialogue?: string;
+  /** Full ordered list of dialogue lines (speech, thought, shout, whisper). */
+  dialogues: DialogueLine[];
   /** Character names extracted from dialogue cues (ALL CAPS before ':') */
   characters: string[];
 }
@@ -44,6 +54,7 @@ function parsePanelBody(body: string): {
   description: string;
   narration?: string;
   dialogue?: string;
+  dialogues: DialogueLine[];
   characters: string[];
 } {
   const lines = body
@@ -53,8 +64,31 @@ function parsePanelBody(body: string): {
 
   const descriptionLines: string[] = [];
   let narration: string | undefined;
-  let dialogue: string | undefined;
+  const dialogues: DialogueLine[] = [];
   const characters: string[] = [];
+
+  const detectKind = (rawName: string, content: string): { name: string; kind: DialogueKind } => {
+    let kind: DialogueKind = 'speech';
+    let name = rawName;
+    // Parenthetical modifiers like "ZEUS (THOUGHT)" or "ASTRA (WHISPER)"
+    const modMatch = name.match(/^([A-Z][A-Z0-9 _-]*?)\s*\(([^)]+)\)\s*$/);
+    if (modMatch) {
+      name = modMatch[1].trim();
+      const mod = modMatch[2].toLowerCase();
+      if (mod.includes('thought') || mod.includes('think')) kind = 'thought';
+      else if (mod.includes('whisper')) kind = 'whisper';
+      else if (mod.includes('shout') || mod.includes('yell') || mod.includes('scream')) kind = 'shout';
+    }
+    // Heuristics from content
+    if (kind === 'speech') {
+      const trimmed = content.trim();
+      const letters = trimmed.replace(/[^A-Za-z]/g, '');
+      if (trimmed.endsWith('!') && letters.length > 1 && letters === letters.toUpperCase()) {
+        kind = 'shout';
+      }
+    }
+    return { name, kind };
+  };
 
   for (const line of lines) {
     const narrMatch = line.match(NARRATION_LINE_REGEX);
@@ -65,16 +99,11 @@ function parsePanelBody(body: string): {
 
     const dialogueMatch = line.match(DIALOGUE_LINE_REGEX);
     if (dialogueMatch) {
-      const name = dialogueMatch[1].trim();
+      const rawName = dialogueMatch[1].trim();
       const content = dialogueMatch[2].trim();
+      const { name, kind } = detectKind(rawName, content);
       if (!characters.includes(name)) characters.push(name);
-      // Keep only the first dialogue line as the primary bubble;
-      // additional dialogue remains in the description so the image generator sees it.
-      if (!dialogue) {
-        dialogue = content;
-      } else {
-        descriptionLines.push(`${name}: "${content}"`);
-      }
+      dialogues.push({ speaker: name, text: content, kind });
       continue;
     }
 
@@ -84,11 +113,11 @@ function parsePanelBody(body: string): {
   return {
     description: descriptionLines.join(' ').trim(),
     narration,
-    dialogue,
+    dialogue: dialogues[0]?.text,
+    dialogues,
     characters,
   };
 }
-
 export function parseComicScript(script: string): ComicPage[] {
   if (!script.trim()) return [];
 
