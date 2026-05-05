@@ -144,7 +144,13 @@ export default function LetterPage() {
       setScriptText(row.script_text || '');
       setPanels(row.panels || []);
       setBubblesByPanel(row.bubbles_by_panel || {});
-      setSpeakerMap(row.speaker_map || {});
+      // Backward-compat: legacy projects stored string values; coerce to arrays.
+      const rawMap = (row.speaker_map || {}) as Record<string, string | string[]>;
+      const normMap: Record<string, string[]> = {};
+      for (const [k, v] of Object.entries(rawMap)) {
+        normMap[k] = Array.isArray(v) ? v : [v];
+      }
+      setSpeakerMap(normMap);
       setSpeakers(buildSpeakerRoster(
         Array.from(new Set((row.panels || []).flatMap((p) => p.speakers.map((s) => s.name))))
       ));
