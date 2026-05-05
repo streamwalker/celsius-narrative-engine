@@ -43,6 +43,8 @@ export default function LetterPage() {
   const [panels, setPanels] = useState<DetectedPanel[]>([]);
   const [bubblesByPanel, setBubblesByPanel] = useState<Record<string, PanelBubbleData[]>>({});
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
+  // script speaker (lowercased) → detected visible speaker name (as returned by AI)
+  const [speakerMap, setSpeakerMap] = useState<Record<string, string>>({});
 
   const exportRef = useRef<HTMLDivElement>(null);
 
