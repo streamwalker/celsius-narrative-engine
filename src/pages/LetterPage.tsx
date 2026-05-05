@@ -245,7 +245,7 @@ export default function LetterPage() {
   }, [characterRoster, detectedSpeakerNames, panels.length]);
 
   const placeBubbles = useCallback(
-    (detected: DetectedPanel[], mapping: Record<string, string>) => {
+    (detected: DetectedPanel[], mapping: Record<string, string | string[]>) => {
       const newBubbles: Record<string, PanelBubbleData[]> = {};
       detected.forEach((dp, i) => {
         const parsed = allParsedPanels[i]; // 1:1 by index
