@@ -776,10 +776,9 @@ ASTRA: "Too quiet."`}
                     variant="outline"
                     className="h-7 text-[11px]"
                     onClick={() => {
-                      const next: Record<string, string> = { ...speakerMap };
+                      const next: Record<string, string | string[]> = { ...speakerMap };
                       const norm = (s: string) =>
                         s.toLowerCase().replace(/[^a-z0-9]+/g, '');
-                      // Score name similarity 0..1 (token / substring / shared chars)
                       const nameScore = (a: string, b: string) => {
                         const na = norm(a);
                         const nb = norm(b);
@@ -791,34 +790,30 @@ ASTRA: "Too quiet."`}
                         let shared = 0;
                         for (const t of at) if (bt.has(t)) shared++;
                         const tokenJ = shared / Math.max(1, at.size + bt.size - shared);
-                        // Char-overlap fallback
                         const setA = new Set(na);
                         let charShared = 0;
                         for (const c of nb) if (setA.has(c)) charShared++;
                         const charJ = charShared / Math.max(na.length, nb.length);
                         return Math.max(tokenJ, charJ * 0.6);
                       };
-                      // Build per-script-speaker panel set & average head position
                       for (const scriptName of uncertainScriptSpeakers) {
                         const key = scriptName.trim().toLowerCase();
-                        // Panels in which this script speaker has a line
                         const panelIdxs: number[] = [];
                         allParsedPanels.forEach((p, i) => {
                           if (p.dialogues?.some((d) => d.speaker.trim().toLowerCase() === key)) {
                             panelIdxs.push(i);
                           }
                         });
-                        // For each candidate detected speaker, score
                         let best: { name: string; score: number } | null = null;
                         for (const cand of detectedSpeakerNames) {
                           const candKey = cand.trim().toLowerCase();
-                          // Skip if another uncertain speaker is already mapped here
-                          const taken = Object.entries(next).some(
-                            ([k, v]) => k !== key && v.trim().toLowerCase() === candKey
-                          );
+                          const taken = Object.entries(next).some(([k, v]) => {
+                            if (k === key) return false;
+                            const arr = Array.isArray(v) ? v : [v];
+                            return arr.some((x) => x.trim().toLowerCase() === candKey);
+                          });
                           if (taken) continue;
                           const ns = nameScore(scriptName, cand);
-                          // Co-presence: how often candidate appears in the same panels
                           let coPresent = 0;
                           for (const idx of panelIdxs) {
                             const dp = panels[idx];
@@ -831,7 +826,7 @@ ASTRA: "Too quiet."`}
                           const score = ns * 0.65 + presence * 0.35;
                           if (!best || score > best.score) best = { name: cand, score };
                         }
-                        if (best && best.score > 0.15) next[key] = best.name;
+                        if (best && best.score > 0.15) next[key] = [best.name];
                       }
                       setSpeakerMap(next);
                     }}
@@ -840,39 +835,61 @@ ASTRA: "Too quiet."`}
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  These script speakers weren't matched to a visible character. Pick the closest one
-                  on the page so tails point correctly, or use Auto-map to guess by name & position.
+                  These script speakers weren't matched to a visible character. Toggle one or more
+                  detected characters below — multi-mapped speakers will rotate targets per line,
+                  and you can override per dialogue line on each bubble.
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {uncertainScriptSpeakers.map((name) => {
                     const key = name.trim().toLowerCase();
+                    const raw = speakerMap[key];
+                    const selected = Array.isArray(raw) ? raw : raw ? [raw] : [];
+                    const selectedSet = new Set(selected.map((s) => s.trim().toLowerCase()));
                     return (
-                      <div key={key} className="flex items-center gap-2">
-                        <span className="w-24 shrink-0 truncate text-xs font-medium">{name}</span>
-                        <span className="text-[11px] text-muted-foreground">→</span>
-                        <Select
-                          value={speakerMap[key] ?? '__none__'}
-                          onValueChange={(v) =>
-                            setSpeakerMap((prev) => {
-                              const next = { ...prev };
-                              if (v === '__none__') delete next[key];
-                              else next[key] = v;
-                              return next;
-                            })
-                          }
-                        >
-                          <SelectTrigger className="h-8 flex-1 text-xs">
-                            <SelectValue placeholder="Unmapped" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Unmapped</SelectItem>
-                            {detectedSpeakerNames.map((d) => (
-                              <SelectItem key={d} value={d}>
+                      <div key={key} className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-24 shrink-0 truncate text-xs font-medium">{name}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            → {selected.length === 0 ? 'Unmapped' : `${selected.length} target${selected.length > 1 ? 's' : ''}`}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {detectedSpeakerNames.map((d) => {
+                            const isOn = selectedSet.has(d.trim().toLowerCase());
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() =>
+                                  setSpeakerMap((prev) => {
+                                    const next = { ...prev };
+                                    const cur = Array.isArray(next[key])
+                                      ? [...(next[key] as string[])]
+                                      : next[key]
+                                      ? [next[key] as string]
+                                      : [];
+                                    const i = cur.findIndex(
+                                      (x) => x.trim().toLowerCase() === d.trim().toLowerCase()
+                                    );
+                                    if (i >= 0) cur.splice(i, 1);
+                                    else cur.push(d);
+                                    if (cur.length === 0) delete next[key];
+                                    else next[key] = cur;
+                                    return next;
+                                  })
+                                }
+                                className={cn(
+                                  'rounded-full border px-2 py-0.5 text-[10px] transition-colors',
+                                  isOn
+                                    ? 'border-primary bg-primary/15 text-primary'
+                                    : 'border-border bg-background hover:bg-muted'
+                                )}
+                              >
                                 {d}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })}
