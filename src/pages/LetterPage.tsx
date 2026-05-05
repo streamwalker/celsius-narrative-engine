@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown, MousePointerSquareDashed, Eye, Save, FolderOpen, Trash2, Plus, LogIn } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown, MousePointerSquareDashed, Eye, Save, FolderOpen, Trash2, Plus, LogIn, ZoomIn, ZoomOut, Maximize2, Hand } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { PanelBoxEditor, type PanelBox } from '@/components/PanelBoxEditor';
@@ -70,6 +70,10 @@ export default function LetterPage() {
   const [editingPanels, setEditingPanels] = useState(false);
   const [snapToEdges, setSnapToEdges] = useState(true);
   const [gridDivisions, setGridDivisions] = useState(0); // 0 = off; e.g. 12 = 12-col grid
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panMode, setPanMode] = useState(false);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   // ---- Library / persistence ----
   const [user, setUser] = useState<User | null>(null);
@@ -356,6 +360,27 @@ export default function LetterPage() {
     if (panels.length > 0) placeBubbles(panels, speakerMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speakerMap]);
+
+  // Hold Space to temporarily enable pan mode
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !panMode) {
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        e.preventDefault();
+        setPanMode(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setPanMode(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [panMode]);
 
   // ---- Manual panel editing ------------------------------------------------
   const panelBoxes: PanelBox[] = useMemo(
@@ -1064,60 +1089,180 @@ ASTRA: "Too quiet."`}
               Upload a page to begin.
             </div>
           ) : (
-            <div ref={exportRef} className="relative mx-auto" style={{ maxWidth: '900px' }}>
-              <img
-                src={imageUrl}
-                alt="Page artwork"
-                className="block w-full select-none"
-                draggable={false}
-              />
-              {/* Bubble layer (hidden in edit mode for clarity) */}
-              {!editingPanels &&
-                panels.map((p) => {
-                  const key = `p_${p.index}`;
-                  const panelBubbles = bubblesByPanel[key] ?? [];
-                  return (
-                    <div
-                      key={key}
-                      className="lp-bubble-overlay absolute"
-                      style={{
-                        left: `${p.x * 100}%`,
-                        top: `${p.y * 100}%`,
-                        width: `${p.w * 100}%`,
-                        height: `${p.h * 100}%`,
-                      }}
-                    >
-                      <div className="pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30" />
-                      <div className="absolute -top-5 left-0 font-mono text-[10px] text-primary/70">
-                        Panel {p.index}
-                      </div>
-                      <PanelBubbleEditor
-                        bubbles={panelBubbles}
-                        speakers={speakers}
-                        aspectRatio={p.w && p.h ? p.w / p.h : 1}
-                        className="!h-full"
-                        tailTargets={p.speakers.map((s) => ({
-                          name: s.name,
-                          x: p.w > 0 ? Math.max(0, Math.min(1, (s.x - p.x) / p.w)) : 0.5,
-                          y: p.h > 0 ? Math.max(0, Math.min(1, (s.y - p.y) / p.h)) : 0.5,
-                        }))}
-                        onChange={(next) =>
-                          setBubblesByPanel((prev) => ({ ...prev, [key]: next }))
-                        }
-                      />
-                    </div>
-                  );
-                })}
-              {/* Manual panel-box editor overlay */}
-              <PanelBoxEditor
-                panels={panelBoxes}
-                onChange={applyPanelBoxes}
-                enabled={editingPanels}
-                gridSize={gridDivisions > 0 ? 1 / gridDivisions : 0}
-                snapToEdges={snapToEdges}
-                snapTolerance={0.012}
-              />
-            </div>
+            <>
+              {/* Zoom / pan toolbar */}
+              <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2"
+                  onClick={() => setZoom((z) => Math.max(0.25, +(z - 0.25).toFixed(2)))}
+                  title="Zoom out"
+                >
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </Button>
+                <input
+                  type="range"
+                  min={0.25}
+                  max={4}
+                  step={0.05}
+                  value={zoom}
+                  onChange={(e) => setZoom(parseFloat(e.target.value))}
+                  className="h-1 w-32 accent-primary"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2"
+                  onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}
+                  title="Zoom in"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" />
+                </Button>
+                <span className="ml-1 w-12 font-mono text-[11px] text-muted-foreground">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2"
+                  onClick={() => {
+                    setZoom(1);
+                    setPan({ x: 0, y: 0 });
+                  }}
+                  title="Reset zoom & pan (fit)"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={panMode ? 'default' : 'outline'}
+                  className="h-8 px-2"
+                  onClick={() => setPanMode((v) => !v)}
+                  title="Toggle pan mode (or hold Space / middle-click)"
+                >
+                  <Hand className="h-3.5 w-3.5" />
+                </Button>
+                <span className="ml-auto text-[10px] text-muted-foreground">
+                  Wheel = zoom · Space / middle drag = pan
+                </span>
+              </div>
+
+              <div
+                ref={viewportRef}
+                className="relative mx-auto overflow-hidden rounded-md bg-background"
+                style={{ maxWidth: '900px', height: '70vh' }}
+                onWheel={(e) => {
+                  if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 1) return;
+                  e.preventDefault();
+                  const rect = viewportRef.current?.getBoundingClientRect();
+                  if (!rect) return;
+                  const cx = e.clientX - rect.left;
+                  const cy = e.clientY - rect.top;
+                  const factor = Math.exp(-e.deltaY * 0.0015);
+                  setZoom((prev) => {
+                    const next = Math.max(0.25, Math.min(4, prev * factor));
+                    // Adjust pan so the point under cursor stays put
+                    setPan((p) => ({
+                      x: cx - ((cx - p.x) * next) / prev,
+                      y: cy - ((cy - p.y) * next) / prev,
+                    }));
+                    return next;
+                  });
+                }}
+                onPointerDown={(e) => {
+                  const isPanGesture =
+                    panMode ||
+                    e.button === 1 ||
+                    (e.button === 0 && (e.shiftKey || (e as any).altKey));
+                  if (!isPanGesture) return;
+                  e.preventDefault();
+                  const start = { x: e.clientX, y: e.clientY };
+                  const startPan = { ...pan };
+                  const target = e.currentTarget;
+                  target.setPointerCapture(e.pointerId);
+                  const onMove = (ev: PointerEvent) => {
+                    setPan({
+                      x: startPan.x + (ev.clientX - start.x),
+                      y: startPan.y + (ev.clientY - start.y),
+                    });
+                  };
+                  const onUp = (ev: PointerEvent) => {
+                    target.releasePointerCapture(ev.pointerId);
+                    target.removeEventListener('pointermove', onMove);
+                    target.removeEventListener('pointerup', onUp);
+                    target.removeEventListener('pointercancel', onUp);
+                  };
+                  target.addEventListener('pointermove', onMove);
+                  target.addEventListener('pointerup', onUp);
+                  target.addEventListener('pointercancel', onUp);
+                }}
+              >
+                <div
+                  ref={exportRef}
+                  className="relative origin-top-left"
+                  style={{
+                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                    transformOrigin: '0 0',
+                    width: '100%',
+                    cursor: panMode ? 'grab' : undefined,
+                  }}
+                >
+                  <img
+                    src={imageUrl}
+                    alt="Page artwork"
+                    className="block w-full select-none"
+                    draggable={false}
+                  />
+                  {/* Bubble layer (hidden in edit mode for clarity) */}
+                  {!editingPanels &&
+                    panels.map((p) => {
+                      const key = `p_${p.index}`;
+                      const panelBubbles = bubblesByPanel[key] ?? [];
+                      return (
+                        <div
+                          key={key}
+                          className="lp-bubble-overlay absolute"
+                          style={{
+                            left: `${p.x * 100}%`,
+                            top: `${p.y * 100}%`,
+                            width: `${p.w * 100}%`,
+                            height: `${p.h * 100}%`,
+                          }}
+                        >
+                          <div className="pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30" />
+                          <div className="absolute -top-5 left-0 font-mono text-[10px] text-primary/70">
+                            Panel {p.index}
+                          </div>
+                          <PanelBubbleEditor
+                            bubbles={panelBubbles}
+                            speakers={speakers}
+                            aspectRatio={p.w && p.h ? p.w / p.h : 1}
+                            className="!h-full"
+                            tailTargets={p.speakers.map((s) => ({
+                              name: s.name,
+                              x: p.w > 0 ? Math.max(0, Math.min(1, (s.x - p.x) / p.w)) : 0.5,
+                              y: p.h > 0 ? Math.max(0, Math.min(1, (s.y - p.y) / p.h)) : 0.5,
+                            }))}
+                            onChange={(next) =>
+                              setBubblesByPanel((prev) => ({ ...prev, [key]: next }))
+                            }
+                          />
+                        </div>
+                      );
+                    })}
+                  {/* Manual panel-box editor overlay */}
+                  <PanelBoxEditor
+                    panels={panelBoxes}
+                    onChange={applyPanelBoxes}
+                    enabled={editingPanels && !panMode}
+                    gridSize={gridDivisions > 0 ? 1 / gridDivisions : 0}
+                    snapToEdges={snapToEdges}
+                    snapTolerance={0.012}
+                  />
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>
