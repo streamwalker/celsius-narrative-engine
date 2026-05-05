@@ -41,6 +41,12 @@ export interface PanelBubbleEditorProps {
   className?: string;
   /** Available detected characters whose head positions can target the tail. */
   tailTargets?: TailTargetOption[];
+  /**
+   * If true, do not paint the placeholder gradient background when no image is
+   * supplied. Used by the letter-page overlay where the underlying full-page
+   * artwork must remain visible behind the bubbles.
+   */
+  transparentBackground?: boolean;
 }
 
 type DragMode =
