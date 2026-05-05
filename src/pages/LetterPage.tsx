@@ -608,6 +608,8 @@ export default function LetterPage() {
         throw new Error('No panels detected. Try a clearer page or higher resolution.');
       }
       setPanels(detected);
+      setUndoStack([]);
+      setRedoStack([]);
       setSpeakers(buildSpeakerRoster(characterRoster));
       setSpeakerMap({});
       placeBubbles(detected, {});
