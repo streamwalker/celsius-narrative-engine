@@ -375,7 +375,8 @@ ASTRA: "Too quiet."`}
               </CardContent>
             </Card>
           )}
-
+          <div className="space-y-2 text-[11px] text-muted-foreground">
+            <p className="font-mono uppercase tracking-widest">Tips</p>
             <ul className="list-disc space-y-1 pl-4">
               <li>Drag a bubble to reposition it.</li>
               <li>Drag the small dot to move the tail tip.</li>
