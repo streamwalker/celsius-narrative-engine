@@ -68,10 +68,44 @@ export default function LetterPage() {
   const [speakerMap, setSpeakerMap] = useState<Record<string, string | string[]>>({});
 
   const [editingPanels, setEditingPanels] = useState(false);
-  const [showPanelDebug, setShowPanelDebug] = useState(false);
+  const [showPanelDebug, setShowPanelDebug] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('debug');
+      if (q != null) return q === '1' || q === 'panels' || q === 'true';
+    } catch { /* ignore */ }
+    try {
+      return window.localStorage.getItem('letterpage:showPanelDebug') === '1';
+    } catch {
+      return false;
+    }
+  });
   // Hover (transient) and click-pinned (sticky) panel highlight while debug overlay is on.
   const [hoveredDebugPanel, setHoveredDebugPanel] = useState<number | null>(null);
   const [pinnedDebugPanel, setPinnedDebugPanel] = useState<number | null>(null);
+
+  // Persist debug toggle to localStorage and reflect it in the URL (?debug=panels).
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        'letterpage:showPanelDebug',
+        showPanelDebug ? '1' : '0',
+      );
+    } catch { /* ignore quota */ }
+    try {
+      const url = new URL(window.location.href);
+      if (showPanelDebug) {
+        if (url.searchParams.get('debug') !== 'panels') {
+          url.searchParams.set('debug', 'panels');
+          window.history.replaceState({}, '', url.toString());
+        }
+      } else if (url.searchParams.has('debug')) {
+        url.searchParams.delete('debug');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch { /* ignore */ }
+  }, [showPanelDebug]);
   const [snapToEdges, setSnapToEdges] = useState(true);
   const [gridDivisions, setGridDivisions] = useState(0); // 0 = off; e.g. 12 = 12-col grid
   const [zoom, setZoom] = useState(1);
