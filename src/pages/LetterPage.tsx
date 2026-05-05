@@ -1408,6 +1408,54 @@ ASTRA: "Too quiet."`}
                     snapToEdges={snapToEdges}
                     snapTolerance={0.012}
                   />
+                  {/* Region selection overlay (for re-detect) */}
+                  {regionMode && (
+                    <div
+                      className="absolute inset-0"
+                      style={{ cursor: 'crosshair' }}
+                      onPointerDown={(e) => {
+                        if (e.button !== 0) return;
+                        const host = e.currentTarget as HTMLDivElement;
+                        const rect = host.getBoundingClientRect();
+                        const sx = (e.clientX - rect.left) / rect.width;
+                        const sy = (e.clientY - rect.top) / rect.height;
+                        host.setPointerCapture(e.pointerId);
+                        const start = { x: sx, y: sy };
+                        setDrawingRegion({ x: sx, y: sy, w: 0, h: 0 });
+                        const onMove = (ev: PointerEvent) => {
+                          const cx = (ev.clientX - rect.left) / rect.width;
+                          const cy = (ev.clientY - rect.top) / rect.height;
+                          const x = Math.max(0, Math.min(1, Math.min(start.x, cx)));
+                          const y = Math.max(0, Math.min(1, Math.min(start.y, cy)));
+                          const x2 = Math.max(0, Math.min(1, Math.max(start.x, cx)));
+                          const y2 = Math.max(0, Math.min(1, Math.max(start.y, cy)));
+                          setDrawingRegion({ x, y, w: x2 - x, h: y2 - y });
+                        };
+                        const onUp = () => {
+                          host.removeEventListener('pointermove', onMove);
+                          host.removeEventListener('pointerup', onUp);
+                          setDrawingRegion((r) => {
+                            if (r && r.w > 0.01 && r.h > 0.01) setRegion(r);
+                            return null;
+                          });
+                        };
+                        host.addEventListener('pointermove', onMove);
+                        host.addEventListener('pointerup', onUp);
+                      }}
+                    >
+                      {(drawingRegion ?? region) && (
+                        <div
+                          className="pointer-events-none absolute border-2 border-amber-400 bg-amber-400/10"
+                          style={{
+                            left: `${(drawingRegion ?? region!).x * 100}%`,
+                            top: `${(drawingRegion ?? region!).y * 100}%`,
+                            width: `${(drawingRegion ?? region!).w * 100}%`,
+                            height: `${(drawingRegion ?? region!).h * 100}%`,
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </>
