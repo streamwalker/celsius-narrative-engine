@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { cleanPanels, type CleanPanel } from "../../../src/lib/letter-page-panels.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,14 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface PanelOut {
-  index: number;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  speakers: { name: string; x: number; y: number }[];
-}
+type PanelOut = CleanPanel;
 
 const SYSTEM = `You analyze a single page of finished comic-book artwork to prepare it for lettering.
 
