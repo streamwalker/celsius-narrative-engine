@@ -118,6 +118,96 @@ function parsePanelBody(body: string): {
     characters,
   };
 }
+/**
+ * Fallback parser for standard screenplay format (Celtx, Final Draft, etc.):
+ *   CHARACTER
+ *   (parenthetical)
+ *   Dialogue line.
+ *
+ * Used when no `PAGE N` headers are present. Produces a single synthetic page
+ * with one panel containing every dialogue line in order — enough to populate
+ * the character roster and feed bubble placement on the Letter Page.
+ */
+function parseScreenplayFallback(script: string): ComicPage[] {
+  const BOILERPLATE = /^(created using|continued|fade (in|out)|int\.|ext\.|cut to|dissolve|smash cut|the end)\b/i;
+  const PAGE_NUM = /^\d+\.?$/;
+  const CUE = /^([A-Z][A-Z0-9 _'-]{1,30})$/;
+  const PAREN = /^\((.+)\)$/;
+
+  const rawLines = script.split('\n').map((l) => l.trim());
+  const dialogues: DialogueLine[] = [];
+  const characters: string[] = [];
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i];
+    if (!line) continue;
+    if (BOILERPLATE.test(line)) continue;
+    if (PAGE_NUM.test(line)) continue;
+
+    const cueMatch = line.match(CUE);
+    if (!cueMatch) continue;
+    const name = cueMatch[1].trim();
+    // Need at least one following non-blank line for it to be dialogue
+    let j = i + 1;
+    let kind: DialogueKind = 'speech';
+    // Optional parenthetical
+    while (j < rawLines.length && rawLines[j] === '') j++;
+    const next = rawLines[j];
+    if (!next) continue;
+    const paren = next.match(PAREN);
+    let textStart = j;
+    if (paren) {
+      const mod = paren[1].toLowerCase();
+      if (mod.includes('thought') || mod.includes('think')) kind = 'thought';
+      else if (mod.includes('whisper')) kind = 'whisper';
+      else if (mod.includes('shout') || mod.includes('yell') || mod.includes('scream')) kind = 'shout';
+      textStart = j + 1;
+    }
+    // Collect dialogue lines until blank line or another cue
+    const textParts: string[] = [];
+    let k = textStart;
+    while (k < rawLines.length) {
+      const l = rawLines[k];
+      if (!l) break;
+      if (CUE.test(l) && !PAREN.test(l)) break;
+      if (BOILERPLATE.test(l) || PAGE_NUM.test(l)) break;
+      textParts.push(l);
+      k++;
+    }
+    if (textParts.length === 0) continue;
+    const text = textParts.join(' ').replace(/\s+/g, ' ').trim();
+    // Shout heuristic
+    if (kind === 'speech') {
+      const letters = text.replace(/[^A-Za-z]/g, '');
+      if (text.endsWith('!') && letters.length > 1 && letters === letters.toUpperCase()) {
+        kind = 'shout';
+      }
+    }
+    dialogues.push({ speaker: name, text, kind });
+    if (!characters.includes(name)) characters.push(name);
+    i = k - 1;
+  }
+
+  if (dialogues.length === 0) return [];
+
+  return [
+    {
+      pageNumber: 1,
+      isOdd: true,
+      panels: [
+        {
+          panelNumber: 1,
+          panelKey: 'p1-1',
+          description: '',
+          dialogue: dialogues[0]?.text,
+          dialogues,
+          characters,
+        },
+      ],
+    },
+  ];
+}
+
 export function parseComicScript(script: string): ComicPage[] {
   if (!script.trim()) return [];
 
@@ -128,7 +218,7 @@ export function parseComicScript(script: string): ComicPage[] {
   while ((match = pageRegex.exec(script)) !== null) {
     pageMatches.push({ index: match.index, pageNumber: parseInt(match[1], 10) });
   }
-  if (pageMatches.length === 0) return [];
+  if (pageMatches.length === 0) return parseScreenplayFallback(script);
 
   const pages: ComicPage[] = [];
 
