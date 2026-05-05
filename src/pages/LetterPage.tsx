@@ -825,10 +825,21 @@ ASTRA: "Too quiet."`}
                     </div>
                   </>
                 )}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" className="flex-1" onClick={addManualPanel}>
                     + Add panel
                   </Button>
+                  {panels.length > 1 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleTidyPanels}
+                      title="Renumber in reading order and merge overlapping panels"
+                    >
+                      Tidy
+                    </Button>
+                  )}
                   {panels.length > 0 && (
                     <Button
                       size="sm"
