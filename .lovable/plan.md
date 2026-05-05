@@ -1,46 +1,38 @@
-# Analyzing celsius-comic-creator-2.zip
+## Problem
 
-## What's in the zip
+From the screenshot:
+- **Script panel says "Parsed: 0 panels · 0 speakers"** even though the script is full of `CHARACTER` / dialogue pairs. Cause: `parseComicScript` requires `PAGE N` headers and `1 - description` panel markers (the format the in-app Script Formatter emits). A pasted Celtx/screenplay script has neither, so it returns `[]` → empty character roster → bubble placement has nothing to map.
+- **Panels 2 and 3 render as paper-thin horizontal strips** overlapping panel 1. Cause: `letter-page-analyze` returned boxes with near-zero height; the current filter only drops boxes with `w<0.02 || h<0.02`, and aspect-ratio sanity isn't checked. With a complex 6-photo composite page the model produced bad geometry and we kept it.
 
-The zip is a full project snapshot (`celsius-narrative-engine-main/`) that is **older than your current project**. Comparing every file:
+## Fix
 
-**Files only in the zip (new):**
-- `src/test/comic-bubbles.test.ts` — a vitest suite for the bubble model
+### 1. Screenplay-format fallback in `src/lib/comic-panel-parser.ts`
 
-**Files only in your live project (zip is missing them):**
-- `src/components/PanelBoxEditor.tsx` (manual panel drawing)
-- `src/lib/lettering-library.ts` (Supabase persistence layer)
-- `src/pages/LetterPage.tsx` (the entire Letter-a-Page workflow)
-- `src/pages/AdminEmailLogs.tsx` (email admin dashboard)
-- `src/pages/Unsubscribe.tsx` (transactional email unsubscribe)
+Add a second parser path that activates when no `PAGE` header is found:
 
-**Files that exist in both but the zip version is older / smaller:**
-| File | Zip lines | Project lines | What's missing in the zip |
-|---|---|---|---|
-| `src/App.tsx` | 77 | 83 | `/letter-page`, `/admin/email-logs`, `/unsubscribe` routes |
-| `src/components/AppSidebar.tsx` | 146 | 148 | Letter-a-Page nav entry |
-| `src/components/AuthModal.tsx` | 178 | 333 | Inline confirmation-status alert + manual resend button |
-| `src/components/PanelBubbleEditor.tsx` | 460 | 516 | Lock toggle + per-bubble Tail dropdown |
-| `src/lib/comic-bubbles.ts` | 210 | 223 | `locked` and `tailTarget` fields |
-| `src/lib/comic-panel-parser.ts` | 165 | 194 | Multi-dialogue-per-panel parsing |
-| `supabase/.../types.ts` | — | — | Auto-generated; never hand-edited |
+- Detect blocks of `^[A-Z][A-Z0-9 _-]{1,30}$` lines immediately followed by one or more non-blank text lines (standard screenplay character cue → dialogue).
+- Treat parenthetical lines after the cue (e.g. `(thought)`, `(whisper)`) as kind modifiers, same as today's inline `NAME (THOUGHT):` rule.
+- Skip obvious boilerplate: lines matching `^(Created using|CONTINUED|FADE|INT\.|EXT\.|\d+\.)` and stray page numbers.
+- Wrap the result as a single `ComicPage { pageNumber: 1, panels: [oneSyntheticPanel] }` whose `dialogues[]` contains every extracted line in order, and `characters[]` contains the unique speaker set. Description stays empty (no visual prose).
+- The existing `PAGE`/numbered-panel parser stays the primary path; the fallback only runs when `pageMatches.length === 0`.
 
-## Conclusion
+This makes the **character roster + dialogue lines** populate from any screenplay, which is what the Letter Page actually needs to drive bubble placement (panel boxes themselves come from the AI vision pass, not the script).
 
-Importing the zip's source files would **regress recent features** (lettering workflow, multi-dialogue, bubble locking, multi-mapping tail targets, manual resend, admin logs, etc.). I should not overwrite anything.
+### 2. Reject degenerate panels in `supabase/functions/letter-page-analyze/index.ts`
 
-The only genuinely new artifact is the unit-test file, which still matches the public API of the current `comic-bubbles.ts` (it imports `buildSpeakerRoster`, `clamp01`, `clampBubbleBox`, `createBubble`, `loadBubblesForDraft`, `saveBubblesForDraft`, `seedBubblesFromScript`, `speakerIdFromName`, `SPEAKER_PALETTE` — all still exported).
+Tighten the post-filter:
+- Drop any panel with `w < 0.05` or `h < 0.05` (was `0.02`).
+- Drop panels whose aspect ratio is more extreme than 8:1 in either direction (these are the thin strips in the screenshot).
+- After filtering, drop any panel that overlaps an earlier (larger) one by more than 80% of the smaller box's area — keeps the bigger, well-formed detection.
+- Re-index `index` to `1..N` after filtering so reading order stays clean.
 
-## Plan
+### 3. Re-index test coverage
 
-1. Add `src/test/comic-bubbles.test.ts` exactly as shipped in the zip.
-2. Do **not** touch any other file from the zip — they would undo recent work.
-3. After the test runs once, fix any small assertion drift if the current implementation has slightly different defaults (e.g. minimum bubble size thresholds). I'll only adjust the test, never weaken the live code.
+`src/test/comic-bubbles.test.ts` is unaffected (it tests bubble model, not the parser). No CI changes needed.
 
-## What I will NOT do (and why)
+## Technical notes
 
-- Overwrite `AuthModal.tsx`, `PanelBubbleEditor.tsx`, `comic-bubbles.ts`, `comic-panel-parser.ts`, `App.tsx`, `AppSidebar.tsx` — the zip versions are pre-regression.
-- Touch `src/integrations/supabase/types.ts` — auto-generated.
-- Re-import the zip's `supabase/functions/*` — the live edge functions are newer (e.g., `letter-page-analyze`, `process-email-queue`, `auth-email-hook`, `retry-signup-confirmations`, `send-transactional-email`, etc. — none of which exist in the zip).
-
-If you actually wanted a specific feature from the zip ported in, tell me which one and I'll cherry-pick it instead.
+- Files touched: `src/lib/comic-panel-parser.ts`, `supabase/functions/letter-page-analyze/index.ts`.
+- No DB migration, no new edge function, no UI changes.
+- Existing `PAGE 1` + `1 - …` scripts continue to work identically — the fallback only fires when there are zero `PAGE` matches.
+- After the fix, your current screenplay will show `Parsed: 1 panel · N speakers` (Zeus, Rhea, …), and re-running **Auto-letter** on the artwork should produce 4 clean panel boxes instead of overlapping strips.
