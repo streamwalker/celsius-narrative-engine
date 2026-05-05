@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ScriptFormatter from "./pages/ScriptFormatter";
 import ComicPanels from "./pages/ComicPanels";
+import LetterPage from "./pages/LetterPage";
 import Library from "./pages/Library";
 import NarrativeEngine from "./pages/NarrativeEngine";
 import NarrativeEngineGuide from "./pages/NarrativeEngineGuide";
