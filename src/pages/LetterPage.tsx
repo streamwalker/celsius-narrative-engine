@@ -73,6 +73,7 @@ export default function LetterPage() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [panMode, setPanMode] = useState(false);
+  const [zoomAnchor, setZoomAnchor] = useState<'cursor' | 'viewport'>('cursor');
   const viewportRef = useRef<HTMLDivElement>(null);
   // Region-constrained re-detection
   const [regionMode, setRegionMode] = useState(false);
@@ -1498,6 +1499,17 @@ ASTRA: "Too quiet."`}
                 >
                   <Hand className="h-3.5 w-3.5" />
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2 text-[10px]"
+                  onClick={() =>
+                    setZoomAnchor((a) => (a === 'cursor' ? 'viewport' : 'cursor'))
+                  }
+                  title="Toggle wheel-zoom anchor between cursor and viewport center"
+                >
+                  Zoom: {zoomAnchor === 'cursor' ? 'Cursor' : 'Center'}
+                </Button>
                 <span className="ml-auto text-[10px] text-muted-foreground">
                   Wheel = zoom · Space / middle drag = pan
                 </span>
@@ -1512,12 +1524,13 @@ ASTRA: "Too quiet."`}
                   e.preventDefault();
                   const rect = viewportRef.current?.getBoundingClientRect();
                   if (!rect) return;
-                  const cx = e.clientX - rect.left;
-                  const cy = e.clientY - rect.top;
+                  const cx =
+                    zoomAnchor === 'cursor' ? e.clientX - rect.left : rect.width / 2;
+                  const cy =
+                    zoomAnchor === 'cursor' ? e.clientY - rect.top : rect.height / 2;
                   const factor = Math.exp(-e.deltaY * 0.0015);
                   setZoom((prev) => {
                     const next = Math.max(0.25, Math.min(4, prev * factor));
-                    // Adjust pan so the point under cursor stays put
                     setPan((p) => ({
                       x: cx - ((cx - p.x) * next) / prev,
                       y: cy - ((cy - p.y) * next) / prev,
