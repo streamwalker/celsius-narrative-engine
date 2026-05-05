@@ -450,6 +450,27 @@ export default function LetterPage() {
     };
   }, [panMode]);
 
+  // Undo/redo keyboard shortcuts (active in panel edit mode)
+  useEffect(() => {
+    if (!editingPanels) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editingPanels, handleUndo, handleRedo]);
+
   // ---- Manual panel editing ------------------------------------------------
   const panelBoxes: PanelBox[] = useMemo(
     () => panels.map((p) => ({ index: p.index, x: p.x, y: p.y, w: p.w, h: p.h })),
