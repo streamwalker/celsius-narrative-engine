@@ -49,7 +49,25 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       onSuccess?.();
       onClose();
     } catch (error: any) {
-      toast.error(error.message || 'Authentication failed');
+      const errorCode = error?.code || error?.name;
+      const errorMessage = error?.message || 'Authentication failed';
+
+      if (isLogin && email && (errorCode === 'email_not_confirmed' || errorMessage.toLowerCase().includes('email not confirmed'))) {
+        const { error: resendError } = await supabase.auth.resend({
+          type: 'signup',
+          email,
+          options: { emailRedirectTo: `${window.location.origin}/` },
+        });
+
+        if (resendError) {
+          toast.error(resendError.message || 'Email not confirmed. Failed to resend confirmation email.');
+        } else {
+          toast.success('Email not confirmed. We sent a new confirmation email.');
+        }
+        return;
+      }
+
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
