@@ -56,6 +56,8 @@ export default function LetterPage() {
   // script speaker (lowercased) → detected visible speaker name (as returned by AI)
   const [speakerMap, setSpeakerMap] = useState<Record<string, string>>({});
 
+  const [editingPanels, setEditingPanels] = useState(false);
+
   const exportRef = useRef<HTMLDivElement>(null);
 
   // ---- Upload handler -------------------------------------------------------
