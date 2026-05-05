@@ -5,6 +5,7 @@ import {
   normalizePanel,
   overlapFractionOfSmaller,
   readingOrder,
+  validatePanelsPayload,
   type CleanPanel,
 } from '../../supabase/functions/_shared/letter-page-panels';
 
