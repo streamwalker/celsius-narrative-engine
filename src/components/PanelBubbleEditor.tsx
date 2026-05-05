@@ -298,6 +298,7 @@ function InteractiveBubble({
   onRequestEdit,
   onCommitEdit,
   onRequestDelete,
+  onToggleLock,
   onCycleSpeaker,
   speakerName,
 }: InteractiveBubbleProps) {
