@@ -270,13 +270,24 @@ export default function LetterPage() {
           });
         }
 
-        const resolveHead = (scriptSpeaker: string) => {
+        // Per-speaker rotation index so multi-mapped speakers cycle targets
+        const speakerLineCounter = new Map<string, number>();
+        const resolveHead = (scriptSpeaker: string, override?: string) => {
+          if (override) {
+            const h = headInPanel.get(override.trim().toLowerCase());
+            if (h) return h;
+          }
           const key = scriptSpeaker.trim().toLowerCase();
           let head = headInPanel.get(key);
           if (head) return head;
           const mapped = mapping[key];
-          if (mapped) head = headInPanel.get(mapped.trim().toLowerCase());
-          return head;
+          const targets = Array.isArray(mapped) ? mapped : mapped ? [mapped] : [];
+          // Filter to those actually visible in this panel
+          const visible = targets.filter((t) => headInPanel.has(t.trim().toLowerCase()));
+          if (visible.length === 0) return undefined;
+          const idx = speakerLineCounter.get(key) ?? 0;
+          speakerLineCounter.set(key, idx + 1);
+          return headInPanel.get(visible[idx % visible.length].trim().toLowerCase());
         };
 
         const dialogueLines = parsed?.dialogues ?? [];
