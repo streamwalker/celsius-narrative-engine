@@ -18,7 +18,7 @@ export interface LetteringProjectRow {
   image_path: string | null;
   panels: LetteringPanel[];
   bubbles_by_panel: Record<string, PanelBubbleData[]>;
-  speaker_map: Record<string, string>;
+  speaker_map: Record<string, string | string[]>;
   created_at: string;
   updated_at: string;
 }
