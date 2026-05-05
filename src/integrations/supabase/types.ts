@@ -537,6 +537,48 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_confirmation_retries: {
+        Row: {
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          email: string
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          max_attempts: number
+          next_retry_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          max_attempts?: number
+          next_retry_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          max_attempts?: number
+          next_retry_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       story_projects: {
         Row: {
           created_at: string
