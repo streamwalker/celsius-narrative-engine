@@ -69,6 +69,9 @@ export default function LetterPage() {
 
   const [editingPanels, setEditingPanels] = useState(false);
   const [showPanelDebug, setShowPanelDebug] = useState(false);
+  // Hover (transient) and click-pinned (sticky) panel highlight while debug overlay is on.
+  const [hoveredDebugPanel, setHoveredDebugPanel] = useState<number | null>(null);
+  const [pinnedDebugPanel, setPinnedDebugPanel] = useState<number | null>(null);
   const [snapToEdges, setSnapToEdges] = useState(true);
   const [gridDivisions, setGridDivisions] = useState(0); // 0 = off; e.g. 12 = 12-col grid
   const [zoom, setZoom] = useState(1);
