@@ -1486,6 +1486,64 @@ ASTRA: "Too quiet."`}
                     panels.map((p) => {
                       const key = `p_${p.index}`;
                       const panelBubbles = bubblesByPanel[key] ?? [];
+                      // Resolve which detected character each bubble points at
+                      const detectedLower = new Set(
+                        p.speakers.map((s) => s.name.trim().toLowerCase())
+                      );
+                      const speakerById = new Map(
+                        speakers.map((s) => [s.id, s.name])
+                      );
+                      const counter = new Map<string, number>();
+                      const resolvedByBubbleId = new Map<
+                        string,
+                        { name: string; source: 'override' | 'direct' | 'mapped' } | null
+                      >();
+                      for (const b of panelBubbles) {
+                        if (b.kind === 'caption') {
+                          resolvedByBubbleId.set(b.id, null);
+                          continue;
+                        }
+                        if (b.tailTarget) {
+                          resolvedByBubbleId.set(b.id, {
+                            name: b.tailTarget,
+                            source: 'override',
+                          });
+                          continue;
+                        }
+                        const scriptName = b.speakerId
+                          ? speakerById.get(b.speakerId) ?? ''
+                          : '';
+                        const lower = scriptName.trim().toLowerCase();
+                        if (lower && detectedLower.has(lower)) {
+                          const match = p.speakers.find(
+                            (s) => s.name.trim().toLowerCase() === lower
+                          );
+                          resolvedByBubbleId.set(b.id, {
+                            name: match?.name ?? scriptName,
+                            source: 'direct',
+                          });
+                          continue;
+                        }
+                        const mapped = lower ? speakerMap[lower] : undefined;
+                        const targets = Array.isArray(mapped)
+                          ? mapped
+                          : mapped
+                          ? [mapped]
+                          : [];
+                        const visible = targets.filter((t) =>
+                          detectedLower.has(t.trim().toLowerCase())
+                        );
+                        if (visible.length === 0) {
+                          resolvedByBubbleId.set(b.id, null);
+                          continue;
+                        }
+                        const idx = counter.get(lower) ?? 0;
+                        counter.set(lower, idx + 1);
+                        resolvedByBubbleId.set(b.id, {
+                          name: visible[idx % visible.length],
+                          source: 'mapped',
+                        });
+                      }
                       return (
                         <div
                           key={key}
@@ -1515,6 +1573,44 @@ ASTRA: "Too quiet."`}
                               setBubblesByPanel((prev) => ({ ...prev, [key]: next }))
                             }
                           />
+                          {/* Resolved-target badges layer */}
+                          <div className="pointer-events-none absolute inset-0">
+                            {panelBubbles.map((b) => {
+                              const r = resolvedByBubbleId.get(b.id);
+                              if (!r) return null;
+                              const sourceClass =
+                                r.source === 'override'
+                                  ? 'bg-amber-500/90 text-amber-50 border-amber-300'
+                                  : r.source === 'direct'
+                                  ? 'bg-primary/85 text-primary-foreground border-primary/40'
+                                  : 'bg-secondary/90 text-secondary-foreground border-border';
+                              const label =
+                                r.source === 'override'
+                                  ? '🔒'
+                                  : r.source === 'direct'
+                                  ? '→'
+                                  : '↻';
+                              return (
+                                <div
+                                  key={`${b.id}-tgt`}
+                                  className={`absolute -translate-y-full rounded border px-1 py-px font-mono text-[9px] leading-tight shadow-sm ${sourceClass}`}
+                                  style={{
+                                    left: `${b.x * 100}%`,
+                                    top: `${b.y * 100}%`,
+                                  }}
+                                  title={
+                                    r.source === 'override'
+                                      ? `Manual override → ${r.name}`
+                                      : r.source === 'direct'
+                                      ? `Direct match → ${r.name}`
+                                      : `Auto-rotated mapping → ${r.name}`
+                                  }
+                                >
+                                  {label} {r.name}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     })}
