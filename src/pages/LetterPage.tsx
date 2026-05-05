@@ -361,6 +361,27 @@ export default function LetterPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speakerMap]);
 
+  // Hold Space to temporarily enable pan mode
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !panMode) {
+        const t = e.target as HTMLElement | null;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        e.preventDefault();
+        setPanMode(true);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setPanMode(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [panMode]);
+
   // ---- Manual panel editing ------------------------------------------------
   const panelBoxes: PanelBox[] = useMemo(
     () => panels.map((p) => ({ index: p.index, x: p.x, y: p.y, w: p.w, h: p.h })),
