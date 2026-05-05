@@ -37,6 +37,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/script-formatter", label: "Script Formatter", icon: FileText },
       { href: "/library", label: "Library", icon: Library },
       { href: "/narrative-engine", label: "Narrative Engine", icon: Sparkles },
+      { href: "/letter-page", label: "Letter a Page", icon: Wand2 },
     ],
   },
   {
