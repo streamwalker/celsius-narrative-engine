@@ -108,9 +108,9 @@ export async function saveLetteringProject(params: {
     title: params.title || 'Untitled Lettering',
     script_text: params.scriptText,
     image_path: imagePath,
-    panels: params.panels as unknown as object,
-    bubbles_by_panel: params.bubblesByPanel as unknown as object,
-    speaker_map: params.speakerMap as unknown as object,
+    panels: params.panels as any,
+    bubbles_by_panel: params.bubblesByPanel as any,
+    speaker_map: params.speakerMap as any,
   };
 
   if (params.id) {
