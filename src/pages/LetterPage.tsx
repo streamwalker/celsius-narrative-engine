@@ -555,7 +555,81 @@ export default function LetterPage() {
     }
   };
 
-  // ---- Export ---------------------------------------------------------------
+  // Merge newly detected panels with existing ones, preferring the manual edits
+  // when boxes overlap by more than `overlapThresh` of either area.
+  const mergePanels = (
+    existing: DetectedPanel[],
+    incoming: DetectedPanel[],
+    overlapThresh = 0.4
+  ): DetectedPanel[] => {
+    const out = [...existing];
+    const overlapFrac = (a: DetectedPanel, b: DetectedPanel) => {
+      const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+      const iy = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+      const inter = ix * iy;
+      const aA = a.w * a.h;
+      const aB = b.w * b.h;
+      if (aA <= 0 || aB <= 0) return 0;
+      return Math.max(inter / aA, inter / aB);
+    };
+    for (const cand of incoming) {
+      const dup = out.some((p) => overlapFrac(p, cand) > overlapThresh);
+      if (!dup) out.push({ ...cand, index: out.length + 1 });
+    }
+    return tidyPanels(out);
+  };
+
+  const handleReanalyzeRegion = async () => {
+    if (!imageDataUrl) {
+      toast({ title: 'Upload artwork first', variant: 'destructive' });
+      return;
+    }
+    if (!region || region.w < 0.02 || region.h < 0.02) {
+      toast({ title: 'Draw a region on the page first', variant: 'destructive' });
+      return;
+    }
+    setReanalyzingRegion(true);
+    setError(null);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke('letter-page-analyze', {
+        body: { imageDataUrl, characters: characterRoster, region },
+      });
+      if (fnErr) throw new Error(fnErr.message);
+      if (data?.error) throw new Error(data.error);
+      const detected: DetectedPanel[] = data?.panels ?? [];
+      // Keep only detections whose center falls inside the requested region.
+      const inRegion = detected.filter((p) => {
+        const cx = p.x + p.w / 2;
+        const cy = p.y + p.h / 2;
+        return (
+          cx >= region.x &&
+          cx <= region.x + region.w &&
+          cy >= region.y &&
+          cy <= region.y + region.h
+        );
+      });
+      if (inRegion.length === 0) {
+        toast({ title: 'No new panels detected in that region.', variant: 'destructive' });
+        return;
+      }
+      const merged = mergePanels(panels, inRegion);
+      setPanels(merged);
+      placeBubbles(merged, speakerMap);
+      const added = merged.length - panels.length;
+      toast({
+        title: `Merged ${inRegion.length} detection${inRegion.length === 1 ? '' : 's'}`,
+        description: `${added} new panel${added === 1 ? '' : 's'} added; ${
+          inRegion.length - added
+        } overlapped existing boxes and were skipped.`,
+      });
+      setRegionMode(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Re-analysis failed';
+      setError(msg);
+      toast({ title: msg, variant: 'destructive' });
+    } finally {
+      setReanalyzingRegion(false);
+    }
   const downloadDataUrl = (dataUrl: string, filename: string) => {
     const a = document.createElement('a');
     a.href = dataUrl;
