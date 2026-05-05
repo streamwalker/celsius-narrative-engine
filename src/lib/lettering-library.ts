@@ -79,7 +79,7 @@ export async function saveLetteringProject(params: {
   scriptText: string;
   panels: LetteringPanel[];
   bubblesByPanel: Record<string, PanelBubbleData[]>;
-  speakerMap: Record<string, string>;
+  speakerMap: Record<string, string | string[]>;
   /** Provide when uploading a new artwork; data: URL */
   newImageDataUrl?: string | null;
   /** Existing image path to keep (when not replacing). */
