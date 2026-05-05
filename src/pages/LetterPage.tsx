@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown, MousePointerSquareDashed, Eye } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { PanelBoxEditor, type PanelBox } from '@/components/PanelBoxEditor';
 import {
   Select,
   SelectContent,
@@ -53,6 +55,8 @@ export default function LetterPage() {
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   // script speaker (lowercased) → detected visible speaker name (as returned by AI)
   const [speakerMap, setSpeakerMap] = useState<Record<string, string>>({});
+
+  const [editingPanels, setEditingPanels] = useState(false);
 
   const exportRef = useRef<HTMLDivElement>(null);
 
@@ -196,6 +200,46 @@ export default function LetterPage() {
     if (panels.length > 0) placeBubbles(panels, speakerMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speakerMap]);
+
+  // ---- Manual panel editing ------------------------------------------------
+  const panelBoxes: PanelBox[] = useMemo(
+    () => panels.map((p) => ({ index: p.index, x: p.x, y: p.y, w: p.w, h: p.h })),
+    [panels]
+  );
+
+  const applyPanelBoxes = (boxes: PanelBox[]) => {
+    // Preserve any existing speaker data per panel index when possible
+    const oldByIndex = new Map(panels.map((p) => [p.index, p]));
+    const next: DetectedPanel[] = boxes.map((b) => {
+      const existing = oldByIndex.get(b.index);
+      return {
+        index: b.index,
+        x: b.x,
+        y: b.y,
+        w: b.w,
+        h: b.h,
+        speakers: existing?.speakers ?? [],
+      };
+    });
+    setPanels(next);
+    placeBubbles(next, speakerMap);
+  };
+
+  const addManualPanel = () => {
+    const idx = panels.length + 1;
+    const newPanel: DetectedPanel = {
+      index: idx,
+      x: 0.1,
+      y: 0.1,
+      w: 0.3,
+      h: 0.25,
+      speakers: [],
+    };
+    const next = [...panels, newPanel];
+    setPanels(next);
+    placeBubbles(next, speakerMap);
+    setEditingPanels(true);
+  };
 
   const handleAutoLetter = async () => {
     if (!imageDataUrl) {
@@ -381,6 +425,54 @@ ASTRA: "Too quiet."`}
             )}
           </Button>
 
+          {imageUrl && (
+            <Card>
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    {editingPanels ? (
+                      <MousePointerSquareDashed className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                      Edit panel boxes
+                    </label>
+                  </div>
+                  <Switch checked={editingPanels} onCheckedChange={setEditingPanels} />
+                </div>
+                {editingPanels && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Drag on empty artwork to draw a panel. Drag a panel to move it, the corner to
+                    resize, or click ✕ to delete. Bubbles update automatically.
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1" onClick={addManualPanel}>
+                    + Add panel
+                  </Button>
+                  {panels.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="flex-1"
+                      onClick={() => {
+                        setPanels([]);
+                        setBubblesByPanel({});
+                      }}
+                    >
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+                {panels.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {panels.length} panel{panels.length === 1 ? '' : 's'} on page
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
           {panels.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -503,38 +595,44 @@ ASTRA: "Too quiet."`}
                 className="block w-full select-none"
                 draggable={false}
               />
-              {/* Overlay each detected panel with its bubble editor */}
-              {panels.map((p) => {
-                const key = `p_${p.index}`;
-                const panelBubbles = bubblesByPanel[key] ?? [];
-                return (
-                  <div
-                    key={key}
-                    className="lp-bubble-overlay absolute"
-                    style={{
-                      left: `${p.x * 100}%`,
-                      top: `${p.y * 100}%`,
-                      width: `${p.w * 100}%`,
-                      height: `${p.h * 100}%`,
-                    }}
-                  >
-                    {/* Faint panel outline */}
-                    <div className="pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30" />
-                    <div className="absolute -top-5 left-0 font-mono text-[10px] text-primary/70">
-                      Panel {p.index}
+              {/* Bubble layer (hidden in edit mode for clarity) */}
+              {!editingPanels &&
+                panels.map((p) => {
+                  const key = `p_${p.index}`;
+                  const panelBubbles = bubblesByPanel[key] ?? [];
+                  return (
+                    <div
+                      key={key}
+                      className="lp-bubble-overlay absolute"
+                      style={{
+                        left: `${p.x * 100}%`,
+                        top: `${p.y * 100}%`,
+                        width: `${p.w * 100}%`,
+                        height: `${p.h * 100}%`,
+                      }}
+                    >
+                      <div className="pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30" />
+                      <div className="absolute -top-5 left-0 font-mono text-[10px] text-primary/70">
+                        Panel {p.index}
+                      </div>
+                      <PanelBubbleEditor
+                        bubbles={panelBubbles}
+                        speakers={speakers}
+                        aspectRatio={p.w && p.h ? p.w / p.h : 1}
+                        className="!h-full"
+                        onChange={(next) =>
+                          setBubblesByPanel((prev) => ({ ...prev, [key]: next }))
+                        }
+                      />
                     </div>
-                    <PanelBubbleEditor
-                      bubbles={panelBubbles}
-                      speakers={speakers}
-                      aspectRatio={p.w && p.h ? p.w / p.h : 1}
-                      className="!h-full"
-                      onChange={(next) =>
-                        setBubblesByPanel((prev) => ({ ...prev, [key]: next }))
-                      }
-                    />
-                  </div>
-                );
-              })}
+                  );
+                })}
+              {/* Manual panel-box editor overlay */}
+              <PanelBoxEditor
+                panels={panelBoxes}
+                onChange={applyPanelBoxes}
+                enabled={editingPanels}
+              />
             </div>
           )}
         </div>
