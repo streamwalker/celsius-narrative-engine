@@ -1080,6 +1080,7 @@ ASTRA: "Too quiet."`}
                       variant="ghost"
                       className="flex-1"
                       onClick={() => {
+                        pushHistory();
                         setPanels([]);
                         setBubblesByPanel({});
                       }}
