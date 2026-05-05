@@ -5,9 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, MailWarning } from 'lucide-react';
+
+type ConfirmationStatus = {
+  phase: 'error' | 'resending' | 'sent' | 'resend_failed';
+  errorCode?: string;
+  errorMessage: string;
+  errorStatus?: number;
+  resendError?: string;
+  resendCode?: string;
+  resendStatus?: number;
+  resentAt?: string;
+};
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -21,6 +33,38 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [eulaAccepted, setEulaAccepted] = useState(false);
+  const [confirmation, setConfirmation] = useState<ConfirmationStatus | null>(null);
+
+  const resendConfirmation = async (targetEmail: string) => {
+    setConfirmation((prev) =>
+      prev ? { ...prev, phase: 'resending', resendError: undefined, resendCode: undefined, resendStatus: undefined } : prev,
+    );
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: targetEmail,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    });
+
+    if (resendError) {
+      setConfirmation((prev) =>
+        prev
+          ? {
+              ...prev,
+              phase: 'resend_failed',
+              resendError: resendError.message,
+              resendCode: (resendError as any)?.code,
+              resendStatus: (resendError as any)?.status,
+            }
+          : prev,
+      );
+      toast.error(`Resend failed: ${resendError.message}`);
+    } else {
+      setConfirmation((prev) =>
+        prev ? { ...prev, phase: 'sent', resentAt: new Date().toLocaleTimeString() } : prev,
+      );
+      toast.success('Confirmation email resent.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +75,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     }
 
     setIsLoading(true);
+    setConfirmation(null);
 
     try {
       if (isLogin) {
@@ -51,19 +96,20 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     } catch (error: any) {
       const errorCode = error?.code || error?.name;
       const errorMessage = error?.message || 'Authentication failed';
+      const errorStatus = error?.status;
 
-      if (isLogin && email && (errorCode === 'email_not_confirmed' || errorMessage.toLowerCase().includes('email not confirmed'))) {
-        const { error: resendError } = await supabase.auth.resend({
-          type: 'signup',
-          email,
-          options: { emailRedirectTo: `${window.location.origin}/` },
+      if (
+        isLogin &&
+        email &&
+        (errorCode === 'email_not_confirmed' || errorMessage.toLowerCase().includes('email not confirmed'))
+      ) {
+        setConfirmation({
+          phase: 'resending',
+          errorCode,
+          errorMessage,
+          errorStatus,
         });
-
-        if (resendError) {
-          toast.error(resendError.message || 'Email not confirmed. Failed to resend confirmation email.');
-        } else {
-          toast.success('Email not confirmed. We sent a new confirmation email.');
-        }
+        await resendConfirmation(email);
         return;
       }
 
@@ -101,6 +147,69 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </DialogTitle>
         </DialogHeader>
+
+        {confirmation && (
+          <Alert variant={confirmation.phase === 'sent' ? 'default' : 'destructive'} className="mb-2">
+            <div className="flex items-start gap-2">
+              {confirmation.phase === 'sent' ? (
+                <CheckCircle2 className="h-4 w-4 mt-0.5" />
+              ) : confirmation.phase === 'resending' ? (
+                <Loader2 className="h-4 w-4 mt-0.5 animate-spin" />
+              ) : confirmation.phase === 'resend_failed' ? (
+                <AlertCircle className="h-4 w-4 mt-0.5" />
+              ) : (
+                <MailWarning className="h-4 w-4 mt-0.5" />
+              )}
+              <div className="flex-1 space-y-1.5">
+                <AlertTitle className="text-sm">
+                  {confirmation.phase === 'sent'
+                    ? 'Confirmation email resent'
+                    : confirmation.phase === 'resending'
+                      ? 'Resending confirmation email…'
+                      : confirmation.phase === 'resend_failed'
+                        ? 'Could not resend confirmation email'
+                        : 'Email not confirmed'}
+                </AlertTitle>
+                <AlertDescription className="text-xs space-y-1">
+                  <div>
+                    <span className="font-medium">Sign-in error:</span> {confirmation.errorMessage}
+                    {confirmation.errorCode && (
+                      <> · <code className="font-mono">{confirmation.errorCode}</code></>
+                    )}
+                    {confirmation.errorStatus && <> · HTTP {confirmation.errorStatus}</>}
+                  </div>
+                  {confirmation.phase === 'sent' && (
+                    <div>
+                      A fresh confirmation link was sent to <span className="font-medium">{email}</span>
+                      {confirmation.resentAt && <> at {confirmation.resentAt}</>}. Check your inbox and spam folder.
+                    </div>
+                  )}
+                  {confirmation.phase === 'resend_failed' && confirmation.resendError && (
+                    <div>
+                      <span className="font-medium">Resend error:</span> {confirmation.resendError}
+                      {confirmation.resendCode && (
+                        <> · <code className="font-mono">{confirmation.resendCode}</code></>
+                      )}
+                      {confirmation.resendStatus && <> · HTTP {confirmation.resendStatus}</>}
+                    </div>
+                  )}
+                  {(confirmation.phase === 'sent' || confirmation.phase === 'resend_failed') && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="mt-1 h-7 text-xs"
+                      disabled={isLoading}
+                      onClick={() => resendConfirmation(email)}
+                    >
+                      Resend again
+                    </Button>
+                  )}
+                </AlertDescription>
+              </div>
+            </div>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
