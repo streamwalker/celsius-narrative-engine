@@ -382,10 +382,42 @@ ASTRA: "Too quiet."`}
           </Button>
 
           {panels.length > 0 && (
-            <Button onClick={handleExport} variant="secondary" className="w-full">
-              <Download className="mr-2 h-4 w-4" />
-              Export PNG
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" className="w-full">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="flex items-center gap-2 text-xs">
+                  <Layers className="h-3 w-3" /> Composite (art + bubbles)
+                </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('composite', 'png')}>
+                  PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('composite', 'svg')}>
+                  SVG
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Artwork layer only</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('artwork', 'png')}>
+                  PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('artwork', 'svg')}>
+                  SVG
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Bubbles layer only (transparent)</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('bubbles', 'png')}>
+                  PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('bubbles', 'svg')}>
+                  SVG
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {error && (
