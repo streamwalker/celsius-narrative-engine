@@ -595,38 +595,44 @@ ASTRA: "Too quiet."`}
                 className="block w-full select-none"
                 draggable={false}
               />
-              {/* Overlay each detected panel with its bubble editor */}
-              {panels.map((p) => {
-                const key = `p_${p.index}`;
-                const panelBubbles = bubblesByPanel[key] ?? [];
-                return (
-                  <div
-                    key={key}
-                    className="lp-bubble-overlay absolute"
-                    style={{
-                      left: `${p.x * 100}%`,
-                      top: `${p.y * 100}%`,
-                      width: `${p.w * 100}%`,
-                      height: `${p.h * 100}%`,
-                    }}
-                  >
-                    {/* Faint panel outline */}
-                    <div className="pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30" />
-                    <div className="absolute -top-5 left-0 font-mono text-[10px] text-primary/70">
-                      Panel {p.index}
+              {/* Bubble layer (hidden in edit mode for clarity) */}
+              {!editingPanels &&
+                panels.map((p) => {
+                  const key = `p_${p.index}`;
+                  const panelBubbles = bubblesByPanel[key] ?? [];
+                  return (
+                    <div
+                      key={key}
+                      className="lp-bubble-overlay absolute"
+                      style={{
+                        left: `${p.x * 100}%`,
+                        top: `${p.y * 100}%`,
+                        width: `${p.w * 100}%`,
+                        height: `${p.h * 100}%`,
+                      }}
+                    >
+                      <div className="pointer-events-none absolute inset-0 rounded-sm ring-1 ring-primary/30" />
+                      <div className="absolute -top-5 left-0 font-mono text-[10px] text-primary/70">
+                        Panel {p.index}
+                      </div>
+                      <PanelBubbleEditor
+                        bubbles={panelBubbles}
+                        speakers={speakers}
+                        aspectRatio={p.w && p.h ? p.w / p.h : 1}
+                        className="!h-full"
+                        onChange={(next) =>
+                          setBubblesByPanel((prev) => ({ ...prev, [key]: next }))
+                        }
+                      />
                     </div>
-                    <PanelBubbleEditor
-                      bubbles={panelBubbles}
-                      speakers={speakers}
-                      aspectRatio={p.w && p.h ? p.w / p.h : 1}
-                      className="!h-full"
-                      onChange={(next) =>
-                        setBubblesByPanel((prev) => ({ ...prev, [key]: next }))
-                      }
-                    />
-                  </div>
-                );
-              })}
+                  );
+                })}
+              {/* Manual panel-box editor overlay */}
+              <PanelBoxEditor
+                panels={panelBoxes}
+                onChange={applyPanelBoxes}
+                enabled={editingPanels}
+              />
             </div>
           )}
         </div>
