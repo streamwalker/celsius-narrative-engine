@@ -201,6 +201,46 @@ export default function LetterPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speakerMap]);
 
+  // ---- Manual panel editing ------------------------------------------------
+  const panelBoxes: PanelBox[] = useMemo(
+    () => panels.map((p) => ({ index: p.index, x: p.x, y: p.y, w: p.w, h: p.h })),
+    [panels]
+  );
+
+  const applyPanelBoxes = (boxes: PanelBox[]) => {
+    // Preserve any existing speaker data per panel index when possible
+    const oldByIndex = new Map(panels.map((p) => [p.index, p]));
+    const next: DetectedPanel[] = boxes.map((b) => {
+      const existing = oldByIndex.get(b.index);
+      return {
+        index: b.index,
+        x: b.x,
+        y: b.y,
+        w: b.w,
+        h: b.h,
+        speakers: existing?.speakers ?? [],
+      };
+    });
+    setPanels(next);
+    placeBubbles(next, speakerMap);
+  };
+
+  const addManualPanel = () => {
+    const idx = panels.length + 1;
+    const newPanel: DetectedPanel = {
+      index: idx,
+      x: 0.1,
+      y: 0.1,
+      w: 0.3,
+      h: 0.25,
+      speakers: [],
+    };
+    const next = [...panels, newPanel];
+    setPanels(next);
+    placeBubbles(next, speakerMap);
+    setEditingPanels(true);
+  };
+
   const handleAutoLetter = async () => {
     if (!imageDataUrl) {
       toast({ title: 'Upload artwork first', variant: 'destructive' });
