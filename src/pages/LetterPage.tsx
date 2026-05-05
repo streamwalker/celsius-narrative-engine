@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -8,7 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toPng } from 'html-to-image';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toPng, toSvg } from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -221,18 +229,57 @@ export default function LetterPage() {
   };
 
   // ---- Export ---------------------------------------------------------------
-  const handleExport = async () => {
-    if (!exportRef.current) return;
+  const downloadDataUrl = (dataUrl: string, filename: string) => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    a.click();
+  };
+
+  type ExportLayer = 'composite' | 'artwork' | 'bubbles';
+  type ExportFormat = 'png' | 'svg';
+
+  const renderLayer = async (layer: ExportLayer, format: ExportFormat) => {
+    if (!exportRef.current) return null;
+    // For artwork-only PNG we can just re-download the original data URL.
+    if (layer === 'artwork' && format === 'png' && imageDataUrl) {
+      return imageDataUrl;
+    }
+    const isArtworkNode = (node: HTMLElement) =>
+      node.tagName === 'IMG' && node.getAttribute('alt') === 'Page artwork';
+    const isOverlayNode = (node: HTMLElement) =>
+      node.classList?.contains('lp-bubble-overlay');
+
+    const filter = (node: HTMLElement) => {
+      if (layer === 'artwork') return !isOverlayNode(node);
+      if (layer === 'bubbles') return !isArtworkNode(node);
+      return true;
+    };
+
+    const opts = {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: layer === 'bubbles' ? undefined : '#ffffff',
+      filter,
+    } as const;
+
+    return format === 'png'
+      ? await toPng(exportRef.current, opts)
+      : await toSvg(exportRef.current, opts);
+  };
+
+  const handleExport = async (layer: ExportLayer, format: ExportFormat) => {
     try {
-      const dataUrl = await toPng(exportRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-      });
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = 'lettered-page.png';
-      a.click();
+      const dataUrl = await renderLayer(layer, format);
+      if (!dataUrl) return;
+      const ext = format === 'png' ? 'png' : 'svg';
+      const name =
+        layer === 'composite'
+          ? `lettered-page.${ext}`
+          : layer === 'artwork'
+            ? `page-artwork.${ext}`
+            : `page-bubbles.${ext}`;
+      downloadDataUrl(dataUrl, name);
     } catch (err) {
       toast({
         title: 'Export failed',
@@ -335,10 +382,42 @@ ASTRA: "Too quiet."`}
           </Button>
 
           {panels.length > 0 && (
-            <Button onClick={handleExport} variant="secondary" className="w-full">
-              <Download className="mr-2 h-4 w-4" />
-              Export PNG
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" className="w-full">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="flex items-center gap-2 text-xs">
+                  <Layers className="h-3 w-3" /> Composite (art + bubbles)
+                </DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('composite', 'png')}>
+                  PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('composite', 'svg')}>
+                  SVG
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Artwork layer only</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('artwork', 'png')}>
+                  PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('artwork', 'svg')}>
+                  SVG
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Bubbles layer only (transparent)</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExport('bubbles', 'png')}>
+                  PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('bubbles', 'svg')}>
+                  SVG
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {error && (
@@ -431,7 +510,7 @@ ASTRA: "Too quiet."`}
                 return (
                   <div
                     key={key}
-                    className="absolute"
+                    className="lp-bubble-overlay absolute"
                     style={{
                       left: `${p.x * 100}%`,
                       top: `${p.y * 100}%`,
