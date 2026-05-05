@@ -105,11 +105,9 @@ export default function LetterPage() {
   ) => {
     const content = exportRef.current;
     if (!content) return p;
-    // Un-transformed content size at zoom = 1
-    const rect = content.getBoundingClientRect();
-    const curZ = z || 1;
-    const cw = (rect.width / curZ) * z;
-    const ch = (rect.height / curZ) * z;
+    // offsetWidth/Height are unaffected by CSS transforms
+    const cw = content.offsetWidth * z;
+    const ch = content.offsetHeight * z;
     const minX = Math.min(PAN_MARGIN, vpW - PAN_MARGIN) - cw + PAN_MARGIN;
     const maxX = vpW - PAN_MARGIN;
     const minY = Math.min(PAN_MARGIN, vpH - PAN_MARGIN) - ch + PAN_MARGIN;
