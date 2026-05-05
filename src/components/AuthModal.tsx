@@ -148,6 +148,69 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           </DialogTitle>
         </DialogHeader>
 
+        {confirmation && (
+          <Alert variant={confirmation.phase === 'sent' ? 'default' : 'destructive'} className="mb-2">
+            <div className="flex items-start gap-2">
+              {confirmation.phase === 'sent' ? (
+                <CheckCircle2 className="h-4 w-4 mt-0.5" />
+              ) : confirmation.phase === 'resending' ? (
+                <Loader2 className="h-4 w-4 mt-0.5 animate-spin" />
+              ) : confirmation.phase === 'resend_failed' ? (
+                <AlertCircle className="h-4 w-4 mt-0.5" />
+              ) : (
+                <MailWarning className="h-4 w-4 mt-0.5" />
+              )}
+              <div className="flex-1 space-y-1.5">
+                <AlertTitle className="text-sm">
+                  {confirmation.phase === 'sent'
+                    ? 'Confirmation email resent'
+                    : confirmation.phase === 'resending'
+                      ? 'Resending confirmation email…'
+                      : confirmation.phase === 'resend_failed'
+                        ? 'Could not resend confirmation email'
+                        : 'Email not confirmed'}
+                </AlertTitle>
+                <AlertDescription className="text-xs space-y-1">
+                  <div>
+                    <span className="font-medium">Sign-in error:</span> {confirmation.errorMessage}
+                    {confirmation.errorCode && (
+                      <> · <code className="font-mono">{confirmation.errorCode}</code></>
+                    )}
+                    {confirmation.errorStatus && <> · HTTP {confirmation.errorStatus}</>}
+                  </div>
+                  {confirmation.phase === 'sent' && (
+                    <div>
+                      A fresh confirmation link was sent to <span className="font-medium">{email}</span>
+                      {confirmation.resentAt && <> at {confirmation.resentAt}</>}. Check your inbox and spam folder.
+                    </div>
+                  )}
+                  {confirmation.phase === 'resend_failed' && confirmation.resendError && (
+                    <div>
+                      <span className="font-medium">Resend error:</span> {confirmation.resendError}
+                      {confirmation.resendCode && (
+                        <> · <code className="font-mono">{confirmation.resendCode}</code></>
+                      )}
+                      {confirmation.resendStatus && <> · HTTP {confirmation.resendStatus}</>}
+                    </div>
+                  )}
+                  {(confirmation.phase === 'sent' || confirmation.phase === 'resend_failed') && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="mt-1 h-7 text-xs"
+                      disabled={isLoading}
+                      onClick={() => resendConfirmation(email)}
+                    >
+                      Resend again
+                    </Button>
+                  )}
+                </AlertDescription>
+              </div>
+            </div>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="auth-email">Email</Label>
