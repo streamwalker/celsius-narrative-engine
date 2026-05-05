@@ -68,6 +68,8 @@ export default function LetterPage() {
   const [speakerMap, setSpeakerMap] = useState<Record<string, string | string[]>>({});
 
   const [editingPanels, setEditingPanels] = useState(false);
+  const [snapToEdges, setSnapToEdges] = useState(true);
+  const [gridDivisions, setGridDivisions] = useState(0); // 0 = off; e.g. 12 = 12-col grid
 
   // ---- Library / persistence ----
   const [user, setUser] = useState<User | null>(null);
@@ -684,10 +686,47 @@ ASTRA: "Too quiet."`}
                   <Switch checked={editingPanels} onCheckedChange={setEditingPanels} />
                 </div>
                 {editingPanels && (
-                  <p className="text-[11px] text-muted-foreground">
-                    Drag on empty artwork to draw a panel. Drag a panel to move it, the corner to
-                    resize, or click ✕ to delete. Bubbles update automatically.
-                  </p>
+                  <>
+                    <p className="text-[11px] text-muted-foreground">
+                      Drag on empty artwork to draw a panel. Drag a panel to move it, the corner to
+                      resize, or click ✕ to delete. Bubbles update automatically.
+                    </p>
+                    <div className="space-y-2 rounded-md border bg-muted/30 p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                          Snap to panel edges
+                        </label>
+                        <Switch checked={snapToEdges} onCheckedChange={setSnapToEdges} />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                            Grid
+                          </label>
+                          <span className="text-[10px] text-muted-foreground">
+                            {gridDivisions === 0 ? 'Off' : `${gridDivisions} × ${gridDivisions}`}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {[0, 4, 6, 8, 12, 16].map((n) => (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => setGridDivisions(n)}
+                              className={cn(
+                                'rounded-full border px-2 py-0.5 text-[10px] transition-colors',
+                                gridDivisions === n
+                                  ? 'border-primary bg-primary/15 text-primary'
+                                  : 'border-border bg-background hover:bg-muted'
+                              )}
+                            >
+                              {n === 0 ? 'Off' : n}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1" onClick={addManualPanel}>
@@ -966,6 +1005,9 @@ ASTRA: "Too quiet."`}
                 panels={panelBoxes}
                 onChange={applyPanelBoxes}
                 enabled={editingPanels}
+                gridSize={gridDivisions > 0 ? 1 / gridDivisions : 0}
+                snapToEdges={snapToEdges}
+                snapTolerance={0.012}
               />
             </div>
           )}
