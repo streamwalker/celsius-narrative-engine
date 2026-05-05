@@ -1,6 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toPng } from 'html-to-image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,6 +43,8 @@ export default function LetterPage() {
   const [panels, setPanels] = useState<DetectedPanel[]>([]);
   const [bubblesByPanel, setBubblesByPanel] = useState<Record<string, PanelBubbleData[]>>({});
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
+  // script speaker (lowercased) → detected visible speaker name (as returned by AI)
+  const [speakerMap, setSpeakerMap] = useState<Record<string, string>>({});
 
   const exportRef = useRef<HTMLDivElement>(null);
 
@@ -71,8 +80,22 @@ export default function LetterPage() {
     return Array.from(set);
   }, [allParsedPanels]);
 
+  // All visible speaker names detected by the AI across the page
+  const detectedSpeakerNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of panels) for (const s of p.speakers) set.add(s.name.trim());
+    return Array.from(set);
+  }, [panels]);
+
+  // Script speakers that don't directly match any detected speaker name (case-insensitive)
+  const uncertainScriptSpeakers = useMemo(() => {
+    if (panels.length === 0) return [];
+    const detectedLower = new Set(detectedSpeakerNames.map((n) => n.toLowerCase()));
+    return characterRoster.filter((c) => !detectedLower.has(c.trim().toLowerCase()));
+  }, [characterRoster, detectedSpeakerNames, panels.length]);
+
   const placeBubbles = useCallback(
-    (detected: DetectedPanel[]) => {
+    (detected: DetectedPanel[], mapping: Record<string, string>) => {
       const newBubbles: Record<string, PanelBubbleData[]> = {};
       detected.forEach((dp, i) => {
         const parsed = allParsedPanels[i]; // 1:1 by index
@@ -82,7 +105,7 @@ export default function LetterPage() {
           out.push(createBubble('caption', { text: parsed.narration.trim() }));
         }
 
-        // Build a map of speakerName(lower) → head position relative to PANEL (not page)
+        // Build a map of detectedName(lower) → head position relative to PANEL
         const headInPanel = new Map<string, { x: number; y: number }>();
         for (const s of dp.speakers) {
           const px = dp.w > 0 ? (s.x - dp.x) / dp.w : 0.5;
@@ -93,17 +116,24 @@ export default function LetterPage() {
           });
         }
 
+        const resolveHead = (scriptSpeaker: string) => {
+          const key = scriptSpeaker.trim().toLowerCase();
+          let head = headInPanel.get(key);
+          if (head) return head;
+          const mapped = mapping[key];
+          if (mapped) head = headInPanel.get(mapped.trim().toLowerCase());
+          return head;
+        };
+
         const dialogueLines: { speaker: string; text: string; kind: 'speech' | 'thought' | 'shout' | 'whisper' }[] = [];
         if (parsed?.dialogue) {
           const speaker = parsed.characters[0] ?? '';
           dialogueLines.push({ speaker, text: parsed.dialogue, kind: 'speech' });
         }
 
-        // Stack bubbles vertically across top of panel
         let cursorY = 0.04;
         for (const dl of dialogueLines) {
-          const head = headInPanel.get(dl.speaker.trim().toLowerCase());
-          // Place bubble above head if possible, else top-left
+          const head = resolveHead(dl.speaker);
           const bx = head ? Math.max(0.04, Math.min(0.55, head.x - 0.18)) : 0.06;
           const by = cursorY;
           const bw = 0.38;
@@ -130,6 +160,12 @@ export default function LetterPage() {
     [allParsedPanels]
   );
 
+  // Re-place bubbles whenever the user updates the speaker mapping
+  useEffect(() => {
+    if (panels.length > 0) placeBubbles(panels, speakerMap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speakerMap]);
+
   const handleAutoLetter = async () => {
     if (!imageDataUrl) {
       toast({ title: 'Upload artwork first', variant: 'destructive' });
@@ -149,7 +185,8 @@ export default function LetterPage() {
       }
       setPanels(detected);
       setSpeakers(buildSpeakerRoster(characterRoster));
-      placeBubbles(detected);
+      setSpeakerMap({});
+      placeBubbles(detected, {});
       toast({ title: `Detected ${detected.length} panels — drag bubbles to fine-tune.` });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Analysis failed';
@@ -288,6 +325,56 @@ ASTRA: "Too quiet."`}
             </div>
           )}
 
+          {panels.length > 0 && uncertainScriptSpeakers.length > 0 && (
+            <Card>
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                    Map uncertain speakers
+                  </label>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  These script speakers weren't matched to a visible character. Pick the closest one
+                  on the page so tails point correctly.
+                </p>
+                <div className="space-y-2">
+                  {uncertainScriptSpeakers.map((name) => {
+                    const key = name.trim().toLowerCase();
+                    return (
+                      <div key={key} className="flex items-center gap-2">
+                        <span className="w-24 shrink-0 truncate text-xs font-medium">{name}</span>
+                        <span className="text-[11px] text-muted-foreground">→</span>
+                        <Select
+                          value={speakerMap[key] ?? '__none__'}
+                          onValueChange={(v) =>
+                            setSpeakerMap((prev) => {
+                              const next = { ...prev };
+                              if (v === '__none__') delete next[key];
+                              else next[key] = v;
+                              return next;
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 flex-1 text-xs">
+                            <SelectValue placeholder="Unmapped" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Unmapped</SelectItem>
+                            {detectedSpeakerNames.map((d) => (
+                              <SelectItem key={d} value={d}>
+                                {d}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <div className="space-y-2 text-[11px] text-muted-foreground">
             <p className="font-mono uppercase tracking-widest">Tips</p>
             <ul className="list-disc space-y-1 pl-4">
