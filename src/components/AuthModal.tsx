@@ -284,6 +284,34 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           >
             Or send magic link
           </Button>
+
+          {isLogin && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs"
+              disabled={isLoading || !email}
+              onClick={async () => {
+                if (!email) {
+                  toast.error('Enter your email above first.');
+                  return;
+                }
+                setIsLoading(true);
+                if (!confirmation) {
+                  setConfirmation({
+                    phase: 'resending',
+                    errorCode: 'manual_resend',
+                    errorMessage: 'Manual resend requested by user.',
+                  });
+                }
+                await resendConfirmation(email);
+                setIsLoading(false);
+              }}
+            >
+              Resend confirmation email
+            </Button>
+          )}
         </form>
 
         <div className="text-center text-sm text-muted-foreground">
