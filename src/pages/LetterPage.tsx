@@ -1296,6 +1296,38 @@ ASTRA: "Too quiet."`}
                           <span className="text-[11px] text-muted-foreground">
                             → {selected.length === 0 ? 'Unmapped' : `${selected.length} target${selected.length > 1 ? 's' : ''}`}
                           </span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="ml-auto h-6 px-2 text-[10px]"
+                            title="Clear per-bubble overrides for this speaker and re-run auto-rotation"
+                            onClick={() => {
+                              const speakerId = speakerIdFromName(name);
+                              const cleared: Record<string, PanelBubbleData[]> = {};
+                              let changed = 0;
+                              for (const [pk, list] of Object.entries(bubblesByPanel)) {
+                                cleared[pk] = list.map((b) => {
+                                  if (b.speakerId === speakerId && b.tailTarget) {
+                                    changed += 1;
+                                    const { tailTarget: _t, ...rest } = b;
+                                    return rest as PanelBubbleData;
+                                  }
+                                  return b;
+                                });
+                              }
+                              setBubblesByPanel(cleared);
+                              // Re-run placement using current mapping so rotation restarts
+                              if (panels.length > 0) placeBubbles(panels, speakerMap);
+                              toast({
+                                title: changed
+                                  ? `Cleared ${changed} override${changed === 1 ? '' : 's'} for ${name}`
+                                  : `No overrides to clear for ${name}`,
+                                description: 'Auto-rotation re-applied from current targets.',
+                              });
+                            }}
+                          >
+                            Reset mapping
+                          </Button>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {detectedSpeakerNames.map((d) => {
