@@ -1176,7 +1176,6 @@ ASTRA: "Too quiet."`}
                   target.addEventListener('pointerup', onUp);
                   target.addEventListener('pointercancel', onUp);
                 }}
-                style2={undefined}
               >
                 <div
                   ref={exportRef}
