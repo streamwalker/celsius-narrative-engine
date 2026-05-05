@@ -510,7 +510,7 @@ ASTRA: "Too quiet."`}
                 return (
                   <div
                     key={key}
-                    className="absolute"
+                    className="lp-bubble-overlay absolute"
                     style={{
                       left: `${p.x * 100}%`,
                       top: `${p.y * 100}%`,
