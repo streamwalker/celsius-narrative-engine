@@ -1815,6 +1815,27 @@ ASTRA: "Too quiet."`}
                         </div>
                       );
                     })}
+                  {/* Cleaned panel boxes + reading-order indices (debug overlay) */}
+                  {showPanelDebug &&
+                    panels.map((p) => (
+                      <div
+                        key={`debug_${p.index}`}
+                        className="pointer-events-none absolute z-20 border-2 border-emerald-400/90 bg-emerald-400/5"
+                        style={{
+                          left: `${p.x * 100}%`,
+                          top: `${p.y * 100}%`,
+                          width: `${p.w * 100}%`,
+                          height: `${p.h * 100}%`,
+                        }}
+                      >
+                        <div className="absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-br-md bg-emerald-500 font-mono text-sm font-bold text-white shadow">
+                          {p.index}
+                        </div>
+                        <div className="absolute bottom-0 right-0 rounded-tl-md bg-emerald-500/90 px-1.5 py-0.5 font-mono text-[9px] text-white">
+                          {(p.w * 100).toFixed(1)}×{(p.h * 100).toFixed(1)}%
+                        </div>
+                      </div>
+                    ))}
                   {/* Manual panel-box editor overlay */}
                   <PanelBoxEditor
                     panels={panelBoxes}
