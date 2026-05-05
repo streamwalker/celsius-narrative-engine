@@ -94,6 +94,59 @@ export default function LetterPage() {
 
   const exportRef = useRef<HTMLDivElement>(null);
 
+  // ---- Undo / redo for panel editing ----
+  type EditSnapshot = {
+    panels: DetectedPanel[];
+    bubblesByPanel: Record<string, PanelBubbleData[]>;
+  };
+  const [undoStack, setUndoStack] = useState<EditSnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<EditSnapshot[]>([]);
+  const HISTORY_LIMIT = 50;
+  const pushHistory = useCallback(() => {
+    setUndoStack((s) => {
+      const snap: EditSnapshot = {
+        panels: JSON.parse(JSON.stringify(panels)),
+        bubblesByPanel: JSON.parse(JSON.stringify(bubblesByPanel)),
+      };
+      const next = [...s, snap];
+      if (next.length > HISTORY_LIMIT) next.shift();
+      return next;
+    });
+    setRedoStack([]);
+  }, [panels, bubblesByPanel]);
+  const handleUndo = useCallback(() => {
+    setUndoStack((u) => {
+      if (u.length === 0) return u;
+      const prev = u[u.length - 1];
+      setRedoStack((r) => {
+        const cur: EditSnapshot = {
+          panels: JSON.parse(JSON.stringify(panels)),
+          bubblesByPanel: JSON.parse(JSON.stringify(bubblesByPanel)),
+        };
+        return [...r, cur];
+      });
+      setPanels(prev.panels);
+      setBubblesByPanel(prev.bubblesByPanel);
+      return u.slice(0, -1);
+    });
+  }, [panels, bubblesByPanel]);
+  const handleRedo = useCallback(() => {
+    setRedoStack((r) => {
+      if (r.length === 0) return r;
+      const next = r[r.length - 1];
+      setUndoStack((u) => {
+        const cur: EditSnapshot = {
+          panels: JSON.parse(JSON.stringify(panels)),
+          bubblesByPanel: JSON.parse(JSON.stringify(bubblesByPanel)),
+        };
+        return [...u, cur];
+      });
+      setPanels(next.panels);
+      setBubblesByPanel(next.bubblesByPanel);
+      return r.slice(0, -1);
+    });
+  }, [panels, bubblesByPanel]);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_e, session) => setUser(session?.user ?? null)
@@ -156,6 +209,8 @@ export default function LetterPage() {
       setScriptText(row.script_text || '');
       setPanels(row.panels || []);
       setBubblesByPanel(row.bubbles_by_panel || {});
+      setUndoStack([]);
+      setRedoStack([]);
       // Backward-compat: legacy projects stored string values; coerce to arrays.
       const rawMap = (row.speaker_map || {}) as Record<string, string | string[]>;
       const normMap: Record<string, string[]> = {};
@@ -186,6 +241,8 @@ export default function LetterPage() {
     setScriptText('');
     setPanels([]);
     setBubblesByPanel({});
+    setUndoStack([]);
+    setRedoStack([]);
     setSpeakerMap({});
     setSpeakers([]);
     setImageUrl(null);
@@ -225,6 +282,8 @@ export default function LetterPage() {
       // Reset prior analysis
       setPanels([]);
       setBubblesByPanel({});
+      setUndoStack([]);
+      setRedoStack([]);
       setError(null);
     };
     reader.readAsDataURL(f);
@@ -387,6 +446,27 @@ export default function LetterPage() {
     };
   }, [panMode]);
 
+  // Undo/redo keyboard shortcuts (active in panel edit mode)
+  useEffect(() => {
+    if (!editingPanels) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editingPanels, handleUndo, handleRedo]);
+
   // ---- Manual panel editing ------------------------------------------------
   const panelBoxes: PanelBox[] = useMemo(
     () => panels.map((p) => ({ index: p.index, x: p.x, y: p.y, w: p.w, h: p.h })),
@@ -479,6 +559,7 @@ export default function LetterPage() {
     renumberInReadingOrder(mergeOverlappingPanels(list));
 
   const applyPanelBoxes = (boxes: PanelBox[]) => {
+    pushHistory();
     // Preserve any existing speaker data per panel index when possible
     const oldByIndex = new Map(panels.map((p) => [p.index, p]));
     const mapped: DetectedPanel[] = boxes.map((b) => {
@@ -498,6 +579,7 @@ export default function LetterPage() {
   };
 
   const addManualPanel = () => {
+    pushHistory();
     const idx = panels.length + 1;
     const newPanel: DetectedPanel = {
       index: idx,
@@ -515,6 +597,7 @@ export default function LetterPage() {
 
   const handleTidyPanels = () => {
     if (panels.length === 0) return;
+    pushHistory();
     const next = tidyPanels(panels);
     setPanels(next);
     placeBubbles(next, speakerMap);
@@ -542,6 +625,8 @@ export default function LetterPage() {
         throw new Error('No panels detected. Try a clearer page or higher resolution.');
       }
       setPanels(detected);
+      setUndoStack([]);
+      setRedoStack([]);
       setSpeakers(buildSpeakerRoster(characterRoster));
       setSpeakerMap({});
       placeBubbles(detected, {});
@@ -613,6 +698,7 @@ export default function LetterPage() {
         return;
       }
       const merged = mergePanels(panels, inRegion);
+      pushHistory();
       setPanels(merged);
       placeBubbles(merged, speakerMap);
       const added = merged.length - panels.length;
@@ -961,6 +1047,38 @@ ASTRA: "Too quiet."`}
                       Drag on empty artwork to draw a panel. Drag a panel to move it, the corner to
                       resize, or click ✕ to delete. Bubbles update automatically.
                     </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 flex-1 text-[11px]"
+                        disabled={undoStack.length === 0}
+                        onClick={handleUndo}
+                        title="Undo (Ctrl/Cmd+Z)"
+                      >
+                        ↶ Undo
+                        {undoStack.length > 0 && (
+                          <span className="ml-1 font-mono text-[10px] text-muted-foreground">
+                            {undoStack.length}
+                          </span>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 flex-1 text-[11px]"
+                        disabled={redoStack.length === 0}
+                        onClick={handleRedo}
+                        title="Redo (Ctrl/Cmd+Shift+Z)"
+                      >
+                        ↷ Redo
+                        {redoStack.length > 0 && (
+                          <span className="ml-1 font-mono text-[10px] text-muted-foreground">
+                            {redoStack.length}
+                          </span>
+                        )}
+                      </Button>
+                    </div>
                     <div className="space-y-2 rounded-md border bg-muted/30 p-2">
                       <div className="flex items-center justify-between gap-2">
                         <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -1019,6 +1137,7 @@ ASTRA: "Too quiet."`}
                       variant="ghost"
                       className="flex-1"
                       onClick={() => {
+                        pushHistory();
                         setPanels([]);
                         setBubblesByPanel({});
                       }}
