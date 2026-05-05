@@ -325,8 +325,57 @@ ASTRA: "Too quiet."`}
             </div>
           )}
 
-          <div className="space-y-2 text-[11px] text-muted-foreground">
-            <p className="font-mono uppercase tracking-widest">Tips</p>
+          {panels.length > 0 && uncertainScriptSpeakers.length > 0 && (
+            <Card>
+              <CardContent className="space-y-3 p-4">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                    Map uncertain speakers
+                  </label>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  These script speakers weren't matched to a visible character. Pick the closest one
+                  on the page so tails point correctly.
+                </p>
+                <div className="space-y-2">
+                  {uncertainScriptSpeakers.map((name) => {
+                    const key = name.trim().toLowerCase();
+                    return (
+                      <div key={key} className="flex items-center gap-2">
+                        <span className="w-24 shrink-0 truncate text-xs font-medium">{name}</span>
+                        <span className="text-[11px] text-muted-foreground">→</span>
+                        <Select
+                          value={speakerMap[key] ?? '__none__'}
+                          onValueChange={(v) =>
+                            setSpeakerMap((prev) => {
+                              const next = { ...prev };
+                              if (v === '__none__') delete next[key];
+                              else next[key] = v;
+                              return next;
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 flex-1 text-xs">
+                            <SelectValue placeholder="Unmapped" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Unmapped</SelectItem>
+                            {detectedSpeakerNames.map((d) => (
+                              <SelectItem key={d} value={d}>
+                                {d}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
             <ul className="list-disc space-y-1 pl-4">
               <li>Drag a bubble to reposition it.</li>
               <li>Drag the small dot to move the tail tip.</li>
