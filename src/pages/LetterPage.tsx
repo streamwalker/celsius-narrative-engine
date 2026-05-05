@@ -536,6 +536,7 @@ export default function LetterPage() {
     renumberInReadingOrder(mergeOverlappingPanels(list));
 
   const applyPanelBoxes = (boxes: PanelBox[]) => {
+    pushHistory();
     // Preserve any existing speaker data per panel index when possible
     const oldByIndex = new Map(panels.map((p) => [p.index, p]));
     const mapped: DetectedPanel[] = boxes.map((b) => {
