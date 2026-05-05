@@ -63,8 +63,8 @@ export default function LetterPage() {
   const [panels, setPanels] = useState<DetectedPanel[]>([]);
   const [bubblesByPanel, setBubblesByPanel] = useState<Record<string, PanelBubbleData[]>>({});
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
-  // script speaker (lowercased) → detected visible speaker name (as returned by AI)
-  const [speakerMap, setSpeakerMap] = useState<Record<string, string>>({});
+  // script speaker (lowercased) → one or more detected visible speaker names
+  const [speakerMap, setSpeakerMap] = useState<Record<string, string | string[]>>({});
 
   const [editingPanels, setEditingPanels] = useState(false);
 
