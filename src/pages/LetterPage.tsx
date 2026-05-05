@@ -630,6 +630,9 @@ export default function LetterPage() {
     } finally {
       setReanalyzingRegion(false);
     }
+  };
+
+  // ---- Export ---------------------------------------------------------------
   const downloadDataUrl = (dataUrl: string, filename: string) => {
     const a = document.createElement('a');
     a.href = dataUrl;
