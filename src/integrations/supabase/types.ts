@@ -233,6 +233,45 @@ export type Database = {
           },
         ]
       }
+      lettering_projects: {
+        Row: {
+          bubbles_by_panel: Json
+          created_at: string
+          id: string
+          image_path: string | null
+          panels: Json
+          script_text: string
+          speaker_map: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bubbles_by_panel?: Json
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          panels?: Json
+          script_text?: string
+          speaker_map?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bubbles_by_panel?: Json
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          panels?: Json
+          script_text?: string
+          speaker_map?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       project_collaborators: {
         Row: {
           accepted_at: string | null

@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown, MousePointerSquareDashed, Eye } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown, MousePointerSquareDashed, Eye, Save, FolderOpen, Trash2, Plus, LogIn } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { PanelBoxEditor, type PanelBox } from '@/components/PanelBoxEditor';
+import { AuthModal } from '@/components/AuthModal';
+import type { User } from '@supabase/supabase-js';
+import {
+  listLetteringProjects,
+  loadLetteringProject,
+  saveLetteringProject,
+  deleteLetteringProject,
+  type LetteringSummary,
+} from '@/lib/lettering-library';
 import {
   Select,
   SelectContent,
@@ -58,7 +68,127 @@ export default function LetterPage() {
 
   const [editingPanels, setEditingPanels] = useState(false);
 
+  // ---- Library / persistence ----
+  const [user, setUser] = useState<User | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [title, setTitle] = useState('Untitled Lettering');
+  const [savedImagePath, setSavedImagePath] = useState<string | null>(null);
+  const [pendingImageDataUrl, setPendingImageDataUrl] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [library, setLibrary] = useState<LetteringSummary[]>([]);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [loadingProject, setLoadingProject] = useState(false);
+
   const exportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_e, session) => setUser(session?.user ?? null)
+    );
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const refreshLibrary = useCallback(async () => {
+    if (!user) return;
+    try {
+      setLibrary(await listLetteringProjects(user.id));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [user]);
+
+  useEffect(() => { refreshLibrary(); }, [refreshLibrary]);
+
+  const handleSave = async () => {
+    if (!user) { setAuthOpen(true); return; }
+    if (!imageUrl) {
+      toast({ title: 'Upload artwork before saving.', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const id = await saveLetteringProject({
+        id: projectId,
+        userId: user.id,
+        title,
+        scriptText,
+        panels,
+        bubblesByPanel,
+        speakerMap,
+        newImageDataUrl: pendingImageDataUrl,
+        existingImagePath: savedImagePath,
+      });
+      setProjectId(id);
+      setPendingImageDataUrl(null);
+      const { row, imageUrl: signed } = await loadLetteringProject(id);
+      setSavedImagePath(row.image_path);
+      if (signed) setImageUrl(signed);
+      await refreshLibrary();
+      toast({ title: 'Saved to your library.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Save failed', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLoad = async (id: string) => {
+    setLoadingProject(true);
+    try {
+      const { row, imageUrl: signed } = await loadLetteringProject(id);
+      setProjectId(row.id);
+      setTitle(row.title);
+      setScriptText(row.script_text || '');
+      setPanels(row.panels || []);
+      setBubblesByPanel(row.bubbles_by_panel || {});
+      setSpeakerMap(row.speaker_map || {});
+      setSpeakers(buildSpeakerRoster(
+        Array.from(new Set((row.panels || []).flatMap((p) => p.speakers.map((s) => s.name))))
+      ));
+      setSavedImagePath(row.image_path);
+      setPendingImageDataUrl(null);
+      setImageDataUrl(null);
+      setImageUrl(signed);
+      setLibraryOpen(false);
+      toast({ title: `Loaded "${row.title}"` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Load failed', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setLoadingProject(false);
+    }
+  };
+
+  const handleNew = () => {
+    setProjectId(null);
+    setTitle('Untitled Lettering');
+    setScriptText('');
+    setPanels([]);
+    setBubblesByPanel({});
+    setSpeakerMap({});
+    setSpeakers([]);
+    setImageUrl(null);
+    setImageDataUrl(null);
+    setPendingImageDataUrl(null);
+    setSavedImagePath(null);
+    setError(null);
+  };
+
+  const handleDeleteProject = async (id: string, imagePath: string | null) => {
+    if (!confirm('Delete this lettering project?')) return;
+    try {
+      await deleteLetteringProject(id, imagePath);
+      if (projectId === id) handleNew();
+      await refreshLibrary();
+      toast({ title: 'Deleted' });
+    } catch (e) {
+      toast({ title: 'Delete failed', description: (e as Error).message, variant: 'destructive' });
+    }
+  };
+
 
   // ---- Upload handler -------------------------------------------------------
   const onFile = (f: File | null) => {
@@ -72,6 +202,8 @@ export default function LetterPage() {
       const url = reader.result as string;
       setImageDataUrl(url);
       setImageUrl(url);
+      setPendingImageDataUrl(url);
+      setSavedImagePath(null);
       // Reset prior analysis
       setPanels([]);
       setBubblesByPanel({});
@@ -347,11 +479,99 @@ export default function LetterPage() {
         <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           Upload finished art + script → auto-place bubbles
         </span>
+        <div className="ml-auto flex items-center gap-2">
+          <Button size="sm" variant="ghost" onClick={handleNew}>
+            <Plus className="mr-1 h-4 w-4" />New
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => {
+            if (!user) { setAuthOpen(true); return; }
+            setLibraryOpen((v) => !v);
+          }}>
+            <FolderOpen className="mr-1 h-4 w-4" />
+            Library{library.length ? ` (${library.length})` : ''}
+          </Button>
+          <Button size="sm" onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+            {projectId ? 'Save' : 'Save to library'}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         {/* ---------------- Left: inputs ---------------- */}
         <div className="space-y-4">
+          {!user && (
+            <Card>
+              <CardContent className="flex items-center justify-between gap-3 p-4">
+                <p className="text-xs text-muted-foreground">
+                  Sign in to save your work and access your library across devices.
+                </p>
+                <Button size="sm" variant="outline" onClick={() => setAuthOpen(true)}>
+                  <LogIn className="mr-1 h-4 w-4" /> Sign in
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {user && libraryOpen && (
+            <Card>
+              <CardContent className="space-y-2 p-4">
+                <div className="flex items-center justify-between">
+                  <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                    Your lettering library
+                  </label>
+                  <Button size="sm" variant="ghost" onClick={() => setLibraryOpen(false)}>Close</Button>
+                </div>
+                {loadingProject && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+                  </div>
+                )}
+                {library.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No saved projects yet.</p>
+                ) : (
+                  <ul className="max-h-72 space-y-1 overflow-auto">
+                    {library.map((p) => (
+                      <li key={p.id} className="flex items-center gap-2 rounded-sm border p-2 text-xs hover:bg-accent/30">
+                        <button
+                          type="button"
+                          className="flex-1 text-left"
+                          onClick={() => handleLoad(p.id)}
+                        >
+                          <div className="truncate font-medium">{p.title}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {new Date(p.updated_at).toLocaleString()}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Delete"
+                          className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => handleDeleteProject(p.id, p.image_path)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardContent className="space-y-2 p-4">
+              <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                Project title
+              </label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Untitled Lettering"
+              />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardContent className="space-y-3 p-4">
               <label className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -637,6 +857,7 @@ ASTRA: "Too quiet."`}
           )}
         </div>
       </div>
+      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
     </div>
   );
 }
