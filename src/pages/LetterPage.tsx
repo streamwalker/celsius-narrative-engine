@@ -34,6 +34,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 import { PanelBubbleEditor } from '@/components/PanelBubbleEditor';
 import { parseComicScript } from '@/lib/comic-panel-parser';
 import {
