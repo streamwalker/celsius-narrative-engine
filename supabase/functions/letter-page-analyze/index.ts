@@ -34,7 +34,7 @@ Rules:
 - Only list speakers you can clearly identify from the roster; omit unknowns.
 - Output JSON only, no prose, no markdown fences.`;
 
-serve(async (req) => {
+export const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
