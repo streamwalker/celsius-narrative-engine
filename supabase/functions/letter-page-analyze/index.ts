@@ -147,7 +147,9 @@ export const handler = async (req: Request): Promise<Response> => {
     console.error("letter-page-analyze error:", err);
     return json({ error: err instanceof Error ? err.message : "Unknown error" }, 500);
   }
-});
+};
+
+serve(handler);
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
