@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown, MousePointerSquareDashed, Eye } from 'lucide-react';
+import { ArrowLeft, Upload, Loader2, Wand2, Download, FileText, AlertCircle, Users, Layers, ChevronDown, MousePointerSquareDashed, Eye, Save, FolderOpen, Trash2, Plus, LogIn } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { PanelBoxEditor, type PanelBox } from '@/components/PanelBoxEditor';
+import { AuthModal } from '@/components/AuthModal';
+import type { User } from '@supabase/supabase-js';
+import {
+  listLetteringProjects,
+  loadLetteringProject,
+  saveLetteringProject,
+  deleteLetteringProject,
+  type LetteringSummary,
+} from '@/lib/lettering-library';
 import {
   Select,
   SelectContent,
