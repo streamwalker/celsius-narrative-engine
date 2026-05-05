@@ -15,6 +15,14 @@
  * { description, narration, dialogue, characters }.
  */
 
+export type DialogueKind = 'speech' | 'thought' | 'shout' | 'whisper';
+
+export interface DialogueLine {
+  speaker: string;
+  text: string;
+  kind: DialogueKind;
+}
+
 export interface ComicPanelData {
   /** Panel number within its page (1-indexed) */
   panelNumber: number;
@@ -24,8 +32,10 @@ export interface ComicPanelData {
   description: string;
   /** "Reads:" narration box content, if any */
   narration?: string;
-  /** First speech-bubble content (CHARACTER: "line"), if any */
+  /** First speech-bubble content (CHARACTER: "line"), if any. Kept for backward compatibility. */
   dialogue?: string;
+  /** Full ordered list of dialogue lines (speech, thought, shout, whisper). */
+  dialogues: DialogueLine[];
   /** Character names extracted from dialogue cues (ALL CAPS before ':') */
   characters: string[];
 }
