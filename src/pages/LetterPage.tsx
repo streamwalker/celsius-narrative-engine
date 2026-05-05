@@ -74,6 +74,11 @@ export default function LetterPage() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [panMode, setPanMode] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+  // Region-constrained re-detection
+  const [regionMode, setRegionMode] = useState(false);
+  const [region, setRegion] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [drawingRegion, setDrawingRegion] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [reanalyzingRegion, setReanalyzingRegion] = useState(false);
 
   // ---- Library / persistence ----
   const [user, setUser] = useState<User | null>(null);
