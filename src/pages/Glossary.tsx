@@ -41,16 +41,13 @@ export default function Glossary() {
     });
   }, [all, q, active]);
 
+  useEffect(() => {
+    document.title = 'Glossary — Searchable knowledge base';
+  }, []);
+
   return (
     <main className="min-h-screen px-4 sm:px-8 py-8 max-w-6xl mx-auto">
-      <Helmet>
-        <title>Glossary — Searchable knowledge base</title>
-        <meta
-          name="description"
-          content="Searchable glossary of characters, organizations, technologies, lore, business and technical terms."
-        />
-        <link rel="canonical" href="/glossary" />
-      </Helmet>
+
 
       <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground mb-3">
         <Link to="/" className="hover:text-foreground">Home</Link>
