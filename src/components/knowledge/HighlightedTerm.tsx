@@ -35,7 +35,7 @@ export function HighlightedTerm({
   const label = children ?? entry.term;
   const text = plain ? entry.plain : entry.short;
 
-  const triggerClass = `cursor-pointer underline decoration-dotted decoration-primary/60 underline-offset-4 hover:decoration-primary hover:text-primary transition-colors ${className ?? ''}`;
+  const triggerClass = `cursor-pointer underline decoration-dotted decoration-primary/60 underline-offset-4 hover:decoration-primary hover:text-primary transition-colors rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${className ?? ''}`;
 
   // Mobile: always use Popover (click-driven), regardless of variant.
   if (isMobile || variant === 'popover') {
