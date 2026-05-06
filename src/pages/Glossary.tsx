@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react';
-import { Helmet } from 'react-helmet-async';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
