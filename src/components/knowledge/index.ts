@@ -20,3 +20,4 @@ export { InteractiveDiagram, type DiagramNode, type DiagramEdge } from './Intera
 export { VideoExplainer } from './VideoExplainer';
 export { PronunciationButton } from './PronunciationButton';
 export { WhyItMattersPanel } from './WhyItMattersPanel';
+export { ContextualExamples } from './ContextualExamples';

@@ -42,7 +42,7 @@ export function HighlightedTerm({
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <button type="button" className={triggerClass} aria-label={`Definition of ${entry.term}`}>
+          <button type="button" className={triggerClass} aria-haspopup="dialog" aria-label={`Definition of ${entry.term}`}>
             {label}
           </button>
         </PopoverTrigger>
@@ -61,7 +61,7 @@ export function HighlightedTerm({
             type="button"
             onClick={() => open(entry.id)}
             className={triggerClass}
-            aria-label={`Definition of ${entry.term}`}
+            aria-haspopup="dialog" aria-label={`Definition of ${entry.term}`}
           >
             {label}
           </button>
@@ -82,7 +82,7 @@ export function HighlightedTerm({
           type="button"
           onClick={() => open(entry.id)}
           className={triggerClass}
-          aria-label={`Definition of ${entry.term}`}
+          aria-haspopup="dialog" aria-label={`Definition of ${entry.term}`}
         >
           {label}
         </button>
