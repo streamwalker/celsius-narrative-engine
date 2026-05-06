@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { LegalFooter } from "@/components/LegalFooter";
+import { HighlightedTerm, WhyItMattersPanel } from "@/components/knowledge";
 
 const tocSections = [
   { id: "getting-started", label: "Getting Started" },
@@ -136,7 +137,16 @@ export default function NarrativeEngineGuide() {
                   <p className="mt-1">The antagonist's logic system. Their motivation, adaptability, and escalation. Most frameworks stop at A+B — the C-AXIS is what separates functional stories from exceptional ones.</p>
                 </div>
               </div>
-              <p>All three axes must operate simultaneously across all three acts. A scene that only activates one axis is usually a weak scene.</p>
+              <p>
+                All three axes must operate simultaneously across all three acts. A scene that
+                only activates one axis is usually a weak scene. See{' '}
+                <HighlightedTerm termId="tri_axis" /> and{' '}
+                <HighlightedTerm termId="celsius_engine" variant="tooltip" /> for the underlying model.
+              </p>
+              <WhyItMattersPanel>
+                Most "good ideas that don't work" fail because only one or two axes are loaded.
+                The Engine flags this so you can fix it before staging.
+              </WhyItMattersPanel>
             </AccordionContent>
           </AccordionItem>
 
