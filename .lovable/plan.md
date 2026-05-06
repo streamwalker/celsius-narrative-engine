@@ -1,26 +1,54 @@
-I’ll make two coordinated fixes:
+# Phase 4 — Polish & real AI
 
-1. Add focused tests for the `letter-page-analyze` panel cleanup
-   - Extract the panel normalization/filtering logic from `supabase/functions/letter-page-analyze/index.ts` into a small exported helper, so it can be tested without calling the AI service.
-   - Add tests covering the exact regression class:
-     - paper-thin horizontal strips are discarded;
-     - extreme aspect-ratio boxes are discarded;
-     - near-duplicate overlapping strips/boxes are removed;
-     - clean panels 2 and 3 are preserved and re-indexed in reading order.
-   - Include a fixture resembling the current bad AI output plus correct panel 2/3 boxes, so the test fails if those strips come back.
+Three focused upgrades to finish the knowledge layer.
 
-2. Wire the tests into CI
-   - Update the existing GitHub Actions test step to run both:
-     - `src/test/comic-bubbles.test.ts`
-     - the new letter-page analyze cleanup test
-   - Keep it as a PR/push gate so future changes can’t reintroduce paper-thin overlapping detections.
+## 1. Wire the AI Explainer to Lovable AI
 
-3. Correct the “Can’t see anything” canvas issue on `/letter-page`
-   - The response in the network log now returns four panels, including clean panel 2/3/4 boxes, but the visible page is mostly covered by opaque bubble-editor placeholder backgrounds inside each detected panel.
-   - Update the letter-page overlay use of `PanelBubbleEditor` so it renders bubbles transparently over the uploaded full-page artwork instead of painting each panel with the “No image yet — generate the panel first.” placeholder.
-   - This should make the artwork visible underneath all panels while keeping bubbles, tails, target badges, and panel outlines interactive.
+Today `AIExplainerWidget` returns canned matches. We'll keep that as a fallback and add a real backend.
 
-Technical notes:
-- No database changes are needed.
-- No AI call is needed for the unit tests; the tests will exercise deterministic cleanup code only.
-- I’ll preserve the current full-page uploaded image behavior and only adjust the overlay/background behavior for letter-page usage.
+**New edge function** — `supabase/functions/knowledge-explain/index.ts`
+- Accepts `{ question, glossary, plain }`.
+- Calls the Lovable AI Gateway (`google/gemini-3-flash-preview`) with two system messages:
+  1. Behavior rules (answer only from glossary, no invented terms, plain or standard tone).
+  2. A compact dump of the glossary entries the client sent.
+- Surfaces 429 / 402 cleanly.
+- Returns `{ answer }`. No streaming for the small widget — keeps code simple.
+
+**Widget changes** — `src/components/knowledge/AIExplainerWidget.tsx`
+- On submit, call the function via `supabase.functions.invoke('knowledge-explain', { body: { question, glossary, plain } })` where `glossary = getAllEntries()` projected to the lite shape.
+- Honor the global Plain English toggle.
+- Loading state + typing indicator.
+- On error or empty answer, fall back to the existing `sampleAnswer()` so the widget keeps working offline.
+- Surface 429 / 402 messages via toast.
+
+No DB changes, no new secrets — `LOVABLE_API_KEY` is already provisioned.
+
+## 2. ContextualExamples component
+
+A small reusable block to attach example usages to any concept.
+
+**New file** — `src/components/knowledge/ContextualExamples.tsx`
+- Props: `{ termId?: string; title?: string; examples?: string[] }`.
+- If `termId` is given and the entry has an `example`, prepend it.
+- Renders as a quoted list with a left accent bar matching the design system.
+- Exported from the barrel.
+
+## 3. Accessibility polish on HighlightedTerm
+
+Small but meaningful tweaks in `src/components/knowledge/HighlightedTerm.tsx`:
+- Add `focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm` to the trigger so keyboard focus is visible.
+- `aria-haspopup="dialog"` on the trigger; `role="note"` on the rich preview.
+- Ensure mobile tap closes via outside click (Popover already does this — verify).
+- Keep all colors via design tokens.
+
+## Demo page touch-up
+
+Add one `ContextualExamples` block to `/knowledge` so the new component is visible.
+
+## Out of scope (deferred)
+
+- Streaming responses (overkill for a Q&A widget).
+- Persistence of chat history.
+- Per-page glossary scoping (we send the full unified glossary; ~80 entries, well within context).
+
+Approve to implement.
