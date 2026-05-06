@@ -6,6 +6,7 @@ export { HighlightedTerm } from './HighlightedTerm';
 export { ContextCallout } from './ContextCallout';
 export { ReadMoreSection } from './ReadMoreSection';
 export { FAQBlock, type FAQItem } from './FAQBlock';
+export { ExplainerAccordion, type ExplainerItem } from './ExplainerAccordion';
 export { ConceptCard } from './ConceptCard';
 export { ComparisonTable, type ComparisonRow } from './ComparisonTable';
 export { AIExplainerWidget } from './AIExplainerWidget';
