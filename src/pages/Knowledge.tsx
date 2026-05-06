@@ -191,6 +191,49 @@ export default function Knowledge() {
         </section>
 
         <section>
+          <h2 className="text-2xl font-semibold mb-3">Deeper explanations</h2>
+          <ExplainerAccordion
+            items={[
+              {
+                title: 'Backstory: the First Resonance',
+                tag: 'Lore',
+                summary: 'How the Field opened to humans.',
+                content: (
+                  <p>
+                    A signal of unknown origin pierced the noosphere in AY 0. Within a year,
+                    nine families had developed the rituals that would become the foundation of
+                    every modern dive. Most early travelers did not return.
+                  </p>
+                ),
+              },
+              {
+                title: 'Technical: how a Resonance Suit calibrates',
+                tag: 'Technical',
+                summary: 'Bone-channel implants + chant-protocol.',
+                content: (
+                  <p>
+                    Each suit is matched to a baseline EEG/EMG fingerprint and a personal
+                    chant-key. Recalibration is required after every Class-2+ exposure.
+                  </p>
+                ),
+              },
+              {
+                title: 'For writers: applying Tri-Axis to your scene',
+                tag: 'Craft',
+                summary: 'A practical checklist.',
+                content: (
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Is the protagonist actively pursuing something visible? (A-AXIS)</li>
+                    <li>Is something inside them sabotaging the pursuit? (B-AXIS)</li>
+                    <li>Is the opposition logically right from its own POV? (C-AXIS)</li>
+                  </ul>
+                ),
+              },
+            ]}
+          />
+        </section>
+
+        <section>
           <h2 className="text-2xl font-semibold mb-3">Video explainer</h2>
           <VideoExplainer
             src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
