@@ -18,6 +18,7 @@ import {
   VideoExplainer,
   PronunciationButton,
   WhyItMattersPanel,
+  ContextualExamples,
 } from '@/components/knowledge';
 
 export default function Knowledge() {
