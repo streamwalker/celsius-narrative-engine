@@ -191,6 +191,14 @@ export default function Knowledge() {
           />
         </section>
 
+        <ContextualExamples
+          termId="astralnaut"
+          examples={[
+            'Mira earned her wings after surviving a Class-3 dive in the Veiled Reach.',
+            'Most Astralnauts retire by 35 — the Field is unforgiving on the nervous system.',
+          ]}
+        />
+
         <section>
           <h2 className="text-2xl font-semibold mb-3">Deeper explanations</h2>
           <ExplainerAccordion
