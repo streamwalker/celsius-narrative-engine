@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 interface FootnoteRecord {
   id: string;
@@ -8,44 +8,31 @@ interface FootnoteRecord {
 
 interface Ctx {
   register: (id: string, content: ReactNode) => number;
-  list: () => FootnoteRecord[];
 }
 
 const C = createContext<Ctx | null>(null);
 
 export function FootnotesProvider({ children }: { children: ReactNode }) {
-  const [map, setMap] = useState<Map<string, FootnoteRecord>>(new Map());
+  // ref-based registry so registering during render does not trigger re-renders mid-render
+  const registry = useRef<Map<string, FootnoteRecord>>(new Map());
+  const [, force] = useState(0);
 
   const register = useCallback((id: string, content: ReactNode) => {
-    let assigned = 0;
-    setMap((prev) => {
-      if (prev.has(id)) {
-        assigned = prev.get(id)!.number;
-        return prev;
-      }
-      const number = prev.size + 1;
-      assigned = number;
-      const next = new Map(prev);
-      next.set(id, { id, number, content });
-      return next;
-    });
-    // For first render the state update is async; derive synchronously
-    if (assigned === 0) {
-      assigned = map.size + 1;
-    }
-    return assigned;
-  }, [map]);
+    const existing = registry.current.get(id);
+    if (existing) return existing.number;
+    const number = registry.current.size + 1;
+    registry.current.set(id, { id, number, content });
+    // schedule a re-render of the FootnotesList consumer asynchronously
+    queueMicrotask(() => force((n) => n + 1));
+    return number;
+  }, []);
 
-  const value = useMemo<Ctx>(
-    () => ({
-      register,
-      list: () => Array.from(map.values()).sort((a, b) => a.number - b.number),
-    }),
-    [register, map],
-  );
-
-  return <C.Provider value={value}>{children}</C.Provider>;
+  return <C.Provider value={{ register }}>
+    <RegistryContext.Provider value={registry}>{children}</RegistryContext.Provider>
+  </C.Provider>;
 }
+
+const RegistryContext = createContext<React.MutableRefObject<Map<string, FootnoteRecord>> | null>(null);
 
 export function useFootnotes() {
   const ctx = useContext(C);
@@ -71,11 +58,18 @@ export function FootnoteLink({ id, children }: { id: string; children: ReactNode
 }
 
 export function FootnotesList({ title = 'Notes' }: { title?: string }) {
-  const { list } = useFootnotes();
-  const items = list();
+  const reg = useContext(RegistryContext);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    // re-render once after mount to capture any items registered during the same render
+    const t = setTimeout(() => setTick((n) => n + 1), 0);
+    return () => clearTimeout(t);
+  }, []);
+  if (!reg) return null;
+  const items = Array.from(reg.current.values()).sort((a, b) => a.number - b.number);
   if (items.length === 0) return null;
   return (
-    <section className="mt-12 border-t border-border pt-6" aria-labelledby="footnotes-title">
+    <section className="mt-12 border-t border-border pt-6" aria-labelledby="footnotes-title" data-tick={tick}>
       <h2 id="footnotes-title" className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
         {title}
       </h2>
