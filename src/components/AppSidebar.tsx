@@ -61,6 +61,8 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: "Reference",
     items: [
+      { href: "/knowledge", label: "Knowledge Layer", icon: Sparkles },
+      { href: "/glossary", label: "Glossary", icon: BookOpen },
       { href: "/shakespeare", label: "Shakespeare", icon: Feather },
       { href: "/film-school", label: "Film School", icon: Film },
       { href: "/narrative-engine/guide", label: "Narrative Guide", icon: BookOpen },
