@@ -11,6 +11,7 @@ export { ComparisonTable, type ComparisonRow } from './ComparisonTable';
 export { AIExplainerWidget } from './AIExplainerWidget';
 // Phase 2
 export { FootnotesProvider, FootnoteLink, FootnotesList, useFootnotes } from './Footnotes';
+
 export { TimelineModule, type TimelineItem } from './TimelineModule';
 export { BreadcrumbContext, type Crumb } from './BreadcrumbContext';
 export { AnnotatedImage, type AnnotationMarker } from './AnnotatedImage';
