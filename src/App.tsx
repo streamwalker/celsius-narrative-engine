@@ -11,6 +11,13 @@ import ScriptFormatter from "./pages/ScriptFormatter";
 import ComicPanels from "./pages/ComicPanels";
 import LetterPage from "./pages/LetterPage";
 import Library from "./pages/Library";
+import Glossary from "./pages/Glossary";
+import Knowledge from "./pages/Knowledge";
+import {
+  PlainEnglishProvider,
+  GlossaryDrawerProvider,
+  AIExplainerWidget,
+} from "./components/knowledge";
 import NarrativeEngine from "./pages/NarrativeEngine";
 import NarrativeEngineGuide from "./pages/NarrativeEngineGuide";
 import Characters from "./pages/Characters";
@@ -41,39 +48,46 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/script-formatter" element={<ScriptFormatter />} />
-            <Route path="/script-formatter/:draftId" element={<ScriptFormatter />} />
-            <Route path="/comic-panels/:draftId" element={<ComicPanels />} />
-            <Route path="/letter-page" element={<LetterPage />} />
-            <Route path="/library" element={<Library />} />
-            <Route path="/narrative-engine" element={<NarrativeEngine />} />
-            <Route path="/narrative-engine/guide" element={<NarrativeEngineGuide />} />
-            <Route path="/characters" element={<Characters />} />
-            <Route path="/character-builder" element={<CharacterBuilder />} />
-            <Route path="/astralnaut-studios" element={<AstralnautStudios />} />
-            <Route path="/astralnaut-studios/children-of-aquarius" element={<ChildrenOfAquarius />} />
-            <Route path="/astralnaut-studios/battlefield-atlantis" element={<BattlefieldAtlantis />} />
-            <Route path="/astralnaut-studios/darker-ages" element={<DarkerAges />} />
-            <Route path="/astralnaut-studios/episode-7" element={<Episode7 />} />
-            <Route path="/astralnaut-studios/cross-story-cast" element={<CrossStoryCast />} />
-            <Route path="/shakespeare" element={<Shakespeare />} />
-            <Route path="/film-school" element={<FilmSchool />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/cookies" element={<Cookies />} />
-            <Route path="/compliance" element={<Compliance />} />
-            <Route path="/dpa" element={<Dpa />} />
-            <Route path="/acceptable-use" element={<AcceptableUse />} />
-            <Route path="/patents" element={<Patents />} />
-            <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
-            <Route path="/unsubscribe" element={<Unsubscribe />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AppLayout>
+        <PlainEnglishProvider>
+          <GlossaryDrawerProvider>
+            <AppLayout>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/script-formatter" element={<ScriptFormatter />} />
+                <Route path="/script-formatter/:draftId" element={<ScriptFormatter />} />
+                <Route path="/comic-panels/:draftId" element={<ComicPanels />} />
+                <Route path="/letter-page" element={<LetterPage />} />
+                <Route path="/library" element={<Library />} />
+                <Route path="/knowledge" element={<Knowledge />} />
+                <Route path="/glossary" element={<Glossary />} />
+                <Route path="/narrative-engine" element={<NarrativeEngine />} />
+                <Route path="/narrative-engine/guide" element={<NarrativeEngineGuide />} />
+                <Route path="/characters" element={<Characters />} />
+                <Route path="/character-builder" element={<CharacterBuilder />} />
+                <Route path="/astralnaut-studios" element={<AstralnautStudios />} />
+                <Route path="/astralnaut-studios/children-of-aquarius" element={<ChildrenOfAquarius />} />
+                <Route path="/astralnaut-studios/battlefield-atlantis" element={<BattlefieldAtlantis />} />
+                <Route path="/astralnaut-studios/darker-ages" element={<DarkerAges />} />
+                <Route path="/astralnaut-studios/episode-7" element={<Episode7 />} />
+                <Route path="/astralnaut-studios/cross-story-cast" element={<CrossStoryCast />} />
+                <Route path="/shakespeare" element={<Shakespeare />} />
+                <Route path="/film-school" element={<FilmSchool />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/cookies" element={<Cookies />} />
+                <Route path="/compliance" element={<Compliance />} />
+                <Route path="/dpa" element={<Dpa />} />
+                <Route path="/acceptable-use" element={<AcceptableUse />} />
+                <Route path="/patents" element={<Patents />} />
+                <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AppLayout>
+            <AIExplainerWidget />
+          </GlossaryDrawerProvider>
+        </PlainEnglishProvider>
         <CookieConsentBanner />
       </BrowserRouter>
     </TooltipProvider>
