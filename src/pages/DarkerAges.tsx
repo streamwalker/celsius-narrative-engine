@@ -441,6 +441,8 @@ Note: The author specifies this happens "Not all at once" — it develops gradua
           </PageSection>
         )}
 
+        {visibleIds.has("da-content-outline-feb2019") && <DarkerAgesContentOutlineFeb2019 />}
+
         {visibleIds.has("da-story-plan") && <DarkerAgesStoryPlan />}
 
         {visibleIds.has("da-characters") && (
