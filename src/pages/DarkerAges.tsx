@@ -10,6 +10,7 @@ import {
 import { PageSection, Pre, Heading } from "@/components/story-page-helpers";
 import StoryNotesSearch from "@/components/story-notes-search";
 import DarkerAgesStoryPlan from "@/components/storyplans/DarkerAgesStoryPlan";
+import DarkerAgesContentOutlineFeb2019 from "@/components/storyplans/DarkerAgesContentOutlineFeb2019";
 import DACharacterCreator from "@/components/storyplans/DACharacterCreator";
 import DarkerAgesManuscript from "@/components/storyplans/DarkerAgesManuscript";
 import darkerAgesLogo from "@/assets/darker-ages-logo.png";
@@ -34,6 +35,7 @@ const darkerAgesSections = [
   { id: "da-page-17", label: "Page 17 — Maven's Journey: Awakening to Phoenix" },
   { id: "da-page-18", label: "Page 18 — Owen (The Time Traveler) & Lord Titus" },
   { id: "da-page-19", label: "Page 19 — The Love Square" },
+  { id: "da-content-outline-feb2019", label: 'Content Outline (Feb 2019) — Season One: "The Darkest Dawn"' },
   { id: "da-story-plan", label: "Story Plan — Three-Act / Eight-Sequence Breakdown" },
   { id: "da-characters", label: "Character Creator" },
   { id: "da-manuscript", label: "Novel Manuscript — Darker Ages" },
@@ -59,6 +61,7 @@ const pageContent: Record<string, string> = {
   "da-page-17": "Phoenix awakening Dark Riders Brother Billy Sister Agatha mother reveal Maven blunt force magic scalpel Owen fragile strongest protects world",
   "da-page-18": "Owen time traveler magic technology scalpel tools spells Titus Knight Briar Castle Balorian arrogant Rule of Law",
   "da-page-19": "Love Square Owen Maven Shinobu Titus romantic not all at once gradually develops",
+  "da-content-outline-feb2019": "Content Outline February 2019 Darkest Dawn Season One Maven Shinobu Will Ser Will Owen Estelle Dark Queen Tiger Wraiths Champion Hunter Baylor James Babson Blood of Nevam crystal Omagaia ninja clan feudal Japan Alessandra North Cambria adopted sister rival witch Dyson Sphere alien spaceship Draconians Titus Natsume Obunaga alternate opening inciting incident midpoint climax denouement",
   "da-story-plan": "Story Plan three act eight sequence Save the Cat Golden Fleece Buddy Love Maven identity hiding embracing power sacrifice nexus Writhers Heretic catalyst midpoint climax finale opening image theme stated",
   "da-characters": "Character Creator Maven Shinobu Titus Corbin Rothchylde Estelle Heretic Owen Kataija Matsuo Christian sorcerer mystic warrior archmage noble dark priest time mage ninja stats abilities equipment",
   "da-manuscript": "Novel Manuscript grimdark fantasy Prologue Thief Artifact Estelle Christian time traveler Dark Queen Blacksmith Niece Maven village Writhers Fallen Knight Titus fighting pits Spirit Healer Shinobu Omagari patricide Crossroads wraiths totem Broken Warrior transformation Tavern Rothchylde catacombs Owen scalpel precision magic Omagari Kataija Matsuo clan Heretic offer catacombs guardian nexus sacrifice Phoenix mother daughter Battlefield Atlantis epilogue",
@@ -437,6 +440,8 @@ Personality: In the early days, he is arrogant and prioritizes the "Rule of Law"
 Note: The author specifies this happens "Not all at once" — it develops gradually over the course of the story.`}</Pre>
           </PageSection>
         )}
+
+        {visibleIds.has("da-content-outline-feb2019") && <DarkerAgesContentOutlineFeb2019 />}
 
         {visibleIds.has("da-story-plan") && <DarkerAgesStoryPlan />}
 
