@@ -35,6 +35,7 @@ const darkerAgesSections = [
   { id: "da-page-17", label: "Page 17 — Maven's Journey: Awakening to Phoenix" },
   { id: "da-page-18", label: "Page 18 — Owen (The Time Traveler) & Lord Titus" },
   { id: "da-page-19", label: "Page 19 — The Love Square" },
+  { id: "da-content-outline-feb2019", label: 'Content Outline (Feb 2019) — Season One: "The Darkest Dawn"' },
   { id: "da-story-plan", label: "Story Plan — Three-Act / Eight-Sequence Breakdown" },
   { id: "da-characters", label: "Character Creator" },
   { id: "da-manuscript", label: "Novel Manuscript — Darker Ages" },
