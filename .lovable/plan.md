@@ -1,54 +1,38 @@
-# Phase 4 — Polish & real AI
+## Add "Content Outline (Feb 2019)" to /darker-ages
 
-Three focused upgrades to finish the knowledge layer.
+The Feb 2019 content outline (Season One: "The Darkest Dawn") is **not** currently on the page. The closest existing section is the "Story Plan — Three-Act / Eight-Sequence Breakdown", which is a different, later draft (Maven/Shinobu/Titus + Corbin Rothchylde nexus quest). The Feb 2019 outline features a different cast (Maven, Shinobu, Will/Ser Will, Owen, Estelle, Tiger) and structure, so it should live as its own section.
 
-## 1. Wire the AI Explainer to Lovable AI
+### Plan
 
-Today `AIExplainerWidget` returns canned matches. We'll keep that as a fallback and add a real backend.
+1. **Create** `src/components/storyplans/DarkerAgesContentOutlineFeb2019.tsx`
+   - Follows the exact pattern of `DarkerAgesStoryPlan.tsx` (uses `PageSection`, `Heading`, `Pre` from `story-page-helpers`).
+   - `id="da-content-outline-feb2019"`, title `Content Outline (Feb 2019) — Season One: "The Darkest Dawn"`.
+   - Sections rendered as `Heading` + `Pre` blocks, preserving the user's text verbatim:
+     - Top notes (central character / midpoint motivation)
+     - Act 1 — SQ1-A: Intro / Status Quo (A, B, C, D, D.1, D.2)
+     - Act 1 — SQ1-B: Inciting Incident
+     - Act 1 — SQ2-A: Big Event
+     - Act 1 — SQ2-B: Champion unleashed
+     - Act 2 — SQ3-A: First Obstacle
+     - Act 2 — SQ3-B: Baylor / Blood of Ne'vam
+     - Act 2 — SQ3-C: Opposition closes in
+     - Act 2 — SQ4: Midpoint Culmination
+     - Act 2 — SQ5: All Is Lost
+     - Act 2 — SQ6: Main Culmination
+     - Act 3 — SQ7: Climax & Twist
+     - Act 3 — SQ8: Resolution
+     - Act 3 — SQ8A: Denouement
+     - Alternate Opening
+     - Character Flaws / Naming notes (Shin = Natsume Obunaga)
 
-**New edge function** — `supabase/functions/knowledge-explain/index.ts`
-- Accepts `{ question, glossary, plain }`.
-- Calls the Lovable AI Gateway (`google/gemini-3-flash-preview`) with two system messages:
-  1. Behavior rules (answer only from glossary, no invented terms, plain or standard tone).
-  2. A compact dump of the glossary entries the client sent.
-- Surfaces 429 / 402 cleanly.
-- Returns `{ answer }`. No streaming for the small widget — keeps code simple.
+2. **Edit** `src/pages/DarkerAges.tsx`
+   - Import the new component.
+   - Add a new entry to `darkerAgesSections` (placed just before `da-story-plan` so it reads chronologically as an earlier draft):
+     `{ id: "da-content-outline-feb2019", label: 'Content Outline (Feb 2019) — Season One: "The Darkest Dawn"' }`
+   - Add a matching `pageContent` search-keyword entry (Maven Shinobu Will Owen Estelle Tiger Wraiths Baylor Ne'vam Omagaia Alessandra Dark Queen Champion Hunter Dyson Sphere etc.).
+   - Render `{visibleIds.has("da-content-outline-feb2019") && <DarkerAgesContentOutlineFeb2019 />}` directly above the Story Plan render.
 
-**Widget changes** — `src/components/knowledge/AIExplainerWidget.tsx`
-- On submit, call the function via `supabase.functions.invoke('knowledge-explain', { body: { question, glossary, plain } })` where `glossary = getAllEntries()` projected to the lite shape.
-- Honor the global Plain English toggle.
-- Loading state + typing indicator.
-- On error or empty answer, fall back to the existing `sampleAnswer()` so the widget keeps working offline.
-- Surface 429 / 402 messages via toast.
-
-No DB changes, no new secrets — `LOVABLE_API_KEY` is already provisioned.
-
-## 2. ContextualExamples component
-
-A small reusable block to attach example usages to any concept.
-
-**New file** — `src/components/knowledge/ContextualExamples.tsx`
-- Props: `{ termId?: string; title?: string; examples?: string[] }`.
-- If `termId` is given and the entry has an `example`, prepend it.
-- Renders as a quoted list with a left accent bar matching the design system.
-- Exported from the barrel.
-
-## 3. Accessibility polish on HighlightedTerm
-
-Small but meaningful tweaks in `src/components/knowledge/HighlightedTerm.tsx`:
-- Add `focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm` to the trigger so keyboard focus is visible.
-- `aria-haspopup="dialog"` on the trigger; `role="note"` on the rich preview.
-- Ensure mobile tap closes via outside click (Popover already does this — verify).
-- Keep all colors via design tokens.
-
-## Demo page touch-up
-
-Add one `ContextualExamples` block to `/knowledge` so the new component is visible.
-
-## Out of scope (deferred)
-
-- Streaming responses (overkill for a Q&A widget).
-- Persistence of chat history.
-- Per-page glossary scoping (we send the full unified glossary; ~80 entries, well within context).
-
-Approve to implement.
+### Out of scope
+- No changes to glossary, knowledge layer, or other story pages.
+- No reformatting of existing sections.
+- No new design tokens — reuses existing `PageSection`/`Heading`/`Pre` styling.
