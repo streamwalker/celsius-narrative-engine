@@ -108,6 +108,36 @@ export default function Panelcraft() {
             }`}>
               {saveStatus === 'saving' ? '◌ saving' : saveStatus === 'saved' ? '✓ saved' : '◯ idle'}
             </span>
+            <div className="hidden md:flex items-center gap-1 mr-1">
+              <Toggle
+                size="sm"
+                pressed={showPages}
+                onPressedChange={setShowPages}
+                aria-label="Toggle pages list"
+                title="Toggle pages list"
+              >
+                {showPages ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+              </Toggle>
+              <Toggle
+                size="sm"
+                pressed={showRail}
+                onPressedChange={setShowRail}
+                aria-label="Toggle tension rail"
+                title="Toggle tension + craft rail"
+                className="hidden lg:inline-flex"
+              >
+                {showRail ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+              </Toggle>
+              <Toggle
+                size="sm"
+                pressed={focusMode}
+                onPressedChange={toggleFocus}
+                aria-label="Focus mode"
+                title="Focus mode (hide all rails)"
+              >
+                <Focus className="h-4 w-4" />
+              </Toggle>
+            </div>
             <Button variant="outline" size="sm" onClick={resetToDefaults} title="Reset to Issue 2 breakdown">
               <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
             </Button>
