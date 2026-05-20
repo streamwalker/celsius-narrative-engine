@@ -1,64 +1,99 @@
+## Goal
 
-# Incorporate Panelcraft into the Narrative Engine
+Ship a second variant of the Panelcraft tool ("Panelcraft 2") at its own route, with its own storage and its own sidebar entry directly beneath the existing Panelcraft link. The two tools run independently so you can compare the UI/UX.
 
-Panelcraft is a page-by-page comic scripting workbench: per-page panel cards with `function` tags (SETUP, ESCALATE, TURN, REVEAL, CLIMAX…), tone-tagged dialogue/caption/SFX lines, automatic craft-check warnings (page-turn discipline, dialogue density, COMBAT-without-SFX, tonal monotony), a tension arc graph for the issue, and a one-click industry-format script export.
+## What's new in v2 vs current Panelcraft
 
-The uploaded file is a single-file React/JS prototype with inline styles and a `window.storage` persistence hook. We will refactor it into the project's stack (TypeScript, Tailwind semantic tokens, shadcn, Supabase) and surface it inside the Narrative Engine.
+The uploaded `panelcraft-2.jsx` adds three things on top of the editor we already shipped:
 
-## Where it lives
+1. **Intake screen** — paste a prose treatment (or upload `.txt` / `.md` / `.docx`), pick a target page count (Auto / 22 / 32), optionally add title + theme, then generate a per-page breakdown (page number, R/L side, cliffhanger flag, title, summary). "Load example · Issue 2" still seeds the same demo content.
+2. **Editor enhancements** — page list shows a per-page tension heat overlay; right rail adds a **Function Legend**; header adds **view source** (opens the original treatment in a modal) and **new issue** (returns to intake).
+3. **View router + persistence** — `intake` ↔ `editor`, persisted to localStorage. Independent of the current Panelcraft so both tools keep separate state.
 
-- New route: `/narrative-engine/panelcraft` (rendered inside `AppLayout` like the rest of the engine).
-- New sidebar entry under **Workshop**: "Panelcraft" (icon: `LayoutGrid`), placed next to "Narrative Engine".
-- New button on the Narrative Engine page header: **"Open Panelcraft →"** so the two tools feel like one product.
+Everything else (panel functions, tone tags, line types, craft checks, tension graph, industry-format export) is identical to v1.
 
-## Files to create
+## Plan
 
-1. **`src/lib/panelcraft/types.ts`** — `PanelFunction`, `LineType`, `ToneTag`, `PanelLine`, `Panel`, `Page`, `PanelcraftIssue` (`{ id, title, theme, pages }`).
-2. **`src/lib/panelcraft/constants.ts`** — `PANEL_FUNCTIONS`, `FUNCTION_MAP`, `TONE_TAGS`, `LINE_TYPES`. Colors moved to semantic tokens (`--accent`, `--destructive`, `--muted-foreground`, etc.) instead of raw hex.
-3. **`src/lib/panelcraft/checks.ts`** — pure `checksForPage(page)` and `tensionForPage(page)` ported verbatim from the prototype.
-4. **`src/lib/panelcraft/export.ts`** — `exportPanelcraftScript(issue): string` extracted from `ExportView`.
-5. **`src/lib/panelcraft/sample-issue.ts`** — `makeIssue2()` (the 32-page Children of Aquarius Issue 2 stub + worked examples for pages 1–3) preserved as a seed/template the user can load.
-6. **`src/components/panelcraft/PageListItem.tsx`** — left-rail page list item with tension gradient bar, side badge (L/R), cliffhanger dot.
-7. **`src/components/panelcraft/LineRow.tsx`** — one dialogue/caption/SFX line row (type select, character input for speech, text input, tone select, delete).
-8. **`src/components/panelcraft/PanelCard.tsx`** — panel card with function selector, word count, description textarea, lines list, add-line buttons.
-9. **`src/components/panelcraft/PageEditor.tsx`** — center column: page title, summary, cliffhanger toggle (R-pages only), panels, "+ Add Panel".
-10. **`src/components/panelcraft/StoryArcGraph.tsx`** — right-rail SVG tension graph (clickable nodes, current-page marker, cliffhanger dots).
-11. **`src/components/panelcraft/CraftPanel.tsx`** — right-rail issue list (warn vs note styling).
-12. **`src/components/panelcraft/ExportDialog.tsx`** — shadcn `Dialog` wrapping a `<pre>` of the formatted script with Copy and Download buttons.
-13. **`src/pages/Panelcraft.tsx`** — the page composition: header (project title input, save indicator, Reset, Export, Back to Narrative Engine), three-column layout (page list / editor / arc+craft). Wrapped in `AppLayout`.
+### Routing & nav
 
-## Files to edit
+- New route `/narrative-engine/panelcraft-2` → `pages/Panelcraft2.tsx`, wrapped in `AppLayout`.
+- `AppSidebar`: add `{ href: "/narrative-engine/panelcraft-2", label: "Panelcraft 2", icon: LayoutGrid }` immediately after the existing Panelcraft entry in the Workshop section.
+- Add an "Open Panelcraft 2" button next to the existing "Open Panelcraft" button on the Narrative Engine page header.
 
-- **`src/App.tsx`** — add `<Route path="/narrative-engine/panelcraft" element={<Panelcraft />} />` and the import.
-- **`src/components/AppSidebar.tsx`** — add `{ href: "/narrative-engine/panelcraft", label: "Panelcraft", icon: LayoutGrid }` in the Workshop section right after Narrative Engine.
-- **`src/pages/NarrativeEngine.tsx`** — add a small "Open Panelcraft" `Button` (variant `outline`, icon `LayoutGrid`) in the existing header action row, navigating to `/narrative-engine/panelcraft`. No other changes to engine logic.
+### Files to create
 
-## Persistence
+```
+src/pages/Panelcraft2.tsx                              # App shell: intake|editor view router + persistence
+src/components/panelcraft2/IntakeView.tsx              # Treatment paste/upload + generate UI
+src/components/panelcraft2/EditorView.tsx              # 3-pane editor (header, pages list, editor, right rail)
+src/components/panelcraft2/PageListItemV2.tsx         # Page list row with tension heat overlay
+src/components/panelcraft2/FunctionLegend.tsx          # Function legend block for right rail
+src/components/panelcraft2/SourceDialog.tsx            # Modal showing original treatment
+src/lib/panelcraft2/generate.ts                        # Calls panelcraft-generate edge function, validates JSON
+supabase/functions/panelcraft-generate/index.ts        # Edge function: treatment → per-page breakdown JSON (Lovable AI gateway)
+```
 
-Panelcraft uses localStorage (key `panelcraft:state:v1`) for autosave, matching the prototype and the engine's existing `narrative-engine-data` pattern. Debounced 600ms save with idle/saving/saved indicator. Reset button reloads `makeIssue2()` after confirm. (No DB schema changes in this phase — projects table integration can come later if requested; out of scope here.)
+### Files to reuse from existing Panelcraft
 
-## Design system compliance
+These are already generic enough — no fork needed:
 
-- Replace every inline hex (`#0a0e14`, `#e8a83a`, `#e94f37`, `#161b22`, etc.) with semantic Tailwind tokens already in `index.css` / `tailwind.config.ts`: `bg-background`, `text-foreground`, `text-accent`, `text-destructive`, `border-border`, `bg-muted`, etc. Function-tag colors become a small theme map using HSL CSS variables (`hsl(var(--accent))` for ESCALATE/TURN, `hsl(var(--destructive))` for REVEAL/CLIMAX, `hsl(var(--muted-foreground))` for SETUP/BEAT).
-- Use shadcn `Button`, `Input`, `Textarea`, `Select`, `Dialog`, `Badge`, `Tooltip`, `ScrollArea` instead of raw HTML elements with inline styles.
-- Use `lucide-react` icons (`LayoutGrid`, `Plus`, `Trash2`, `Download`, `Copy`, `RotateCcw`) — drop the Unicode `×` / `●` glyphs.
-- Drop the prototype's inline `<style>` Google-Fonts import; the app already loads fonts globally.
+- `src/lib/panelcraft/types.ts`, `constants.ts`, `checks.ts`, `export.ts`, `sample-issue.ts`
+- `src/components/panelcraft/PanelCard.tsx`, `LineRow.tsx`, `PageEditor.tsx`, `StoryArcGraph.tsx`, `CraftPanel.tsx`, `ExportDialog.tsx`
 
-## Functional fidelity (preserved exactly)
+### Files to edit
 
-- All 9 panel functions with tension weights 1–9.
-- All 16 tone tags.
-- All 6 line types (DIALOGUE / CAPTION / THOUGHT / WHISPER / SHOUT / SFX).
-- Craft checks: R-page cliffhanger must end on TURN/REVEAL/CLIMAX; 1 panel = splash warning; ≥8 panels = density warn; per-panel tonal monotony info; >25 / >35 words density notes; COMBAT without SFX info; empty description info.
-- Tension graph: average of panel tensions per page, click to navigate, current-page marker line, red dots for R-page cliffhangers.
-- Export format: `PAGE ONE (THREE PANELS)`, `[Title — CLIFFHANGER]`, panel description block, `CHARACTER (thought) (tone)` blocks, SFX/CAPTION lines, blank lines between panels — bit-for-bit the same output as the prototype.
-- Issue 2 seed data (32 stubbed pages + 3 worked examples) preserved verbatim.
+- `src/App.tsx` — register the new route.
+- `src/components/AppSidebar.tsx` — add the Panelcraft 2 nav item.
+- `src/pages/NarrativeEngine.tsx` — add the "Open Panelcraft 2" header button.
 
-## Out of scope (call out for the user)
+### Storage isolation
 
-- Saving Panelcraft issues into the Supabase `story_projects` table alongside Narrative Engine projects.
-- AI assistance for panel descriptions / craft suggestions.
-- PDF export.
-- Multi-issue management UI (only one issue lives in localStorage in this phase, same as the prototype).
+- localStorage key: `panelcraft2:state:v1` (separate from v1's `panelcraft:state:v1`).
+- Layout/UI prefs use their own namespace too (`panelcraft2:layout:*`, `panelcraft2:ui:*`).
+- This means Panelcraft and Panelcraft 2 keep independent state — you can have Issue 2 loaded in one and a new generated breakdown in the other.
 
-Happy to fold any of those in as a follow-up phase once the port is in.
+### AI generation (Lovable AI, not direct Anthropic)
+
+The uploaded prototype calls Anthropic directly from the client with no API key — that won't work and would leak a key. We'll route generation through an edge function that uses the Lovable AI gateway (same pattern as the existing `knowledge-explain` function), so no user setup is required.
+
+- Edge function `panelcraft-generate` accepts `{ title, theme, treatment, targetPages }`, calls `google/gemini-2.5-pro` via the Lovable AI gateway with the system prompt from the prototype, parses + validates JSON, returns `{ title, theme, pages: [...] }` with empty `panels: []` arrays attached for editor compatibility.
+- Handles 429 (rate limited) and 402 (credits exhausted) the same way `knowledge-explain` does.
+
+### .docx upload
+
+- Add `mammoth` dependency for client-side `.docx` → text extraction (same as the prototype). `.txt` / `.md` are read with `file.text()`. `.pdf` is left as a "not supported, paste text" notice, matching the prototype.
+
+### View flow
+
+- On mount: load `panelcraft2:state:v1`. If a valid breakdown exists → `editor` view; otherwise → `intake`.
+- Intake "Load example · Issue 2" → seeds `makeIssue2()` from the existing sample-issue module, jumps to editor.
+- Intake "Generate" → calls edge function, on success sets state + switches to editor.
+- Editor "new issue" → confirms, clears storage, returns to intake.
+- Editor "view source" → opens `SourceDialog` showing the stored `treatment` string.
+
+### Editor differences from v1
+
+The v2 editor keeps the same three-pane resizable layout we just built for v1, with these additions:
+
+- `PageListItemV2` renders an amber tension gradient behind each row, intensity scaled by `tensionForPage(page)`.
+- Right rail gets a third section: **Function Legend** — a list of all 9 panel functions with their color swatch, label, and tension weight, rendered from the existing `PANEL_FUNCTIONS` constant.
+- Header gets **view source** + **new issue** buttons in addition to Reset / Export.
+
+### Design system
+
+- All new components use semantic Tailwind tokens (`bg-card`, `text-accent`, `border-border`, etc.) and shadcn primitives — no inline hex colors, no Google Fonts import. The amber palette in the prototype maps to our existing `--accent` token; warn red maps to `--destructive`; tension/function swatches inherit from `--muted-foreground` / `--accent`.
+
+### Out of scope (for this pass)
+
+- Supabase `story_projects` integration (still localStorage-only, like v1).
+- Multi-issue management (only the most recent breakdown lives in storage).
+- PDF export (the existing industry-format text export is reused).
+- Wiring v2 into the Knowledge Layer or Glossary cross-links.
+
+## Verification
+
+- Visit `/narrative-engine/panelcraft-2` → intake view renders, "Load example" jumps to editor with 32 pages.
+- Sidebar shows "Panelcraft" and "Panelcraft 2" stacked under Workshop; active highlighting works for each independently.
+- Edits in Panelcraft 2 don't affect Panelcraft state (and vice versa) after refresh.
+- Generate flow: paste short treatment → edge function returns valid JSON → editor loads. Errors surface inline on the intake screen.
+- `.docx` upload populates the treatment textarea.
