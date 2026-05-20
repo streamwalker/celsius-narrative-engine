@@ -169,8 +169,20 @@ export function IntakeView({ onGenerate, onLoadExample, isGenerating, error }: P
           {error && (
             <Alert variant="destructive">
               <AlertDescription>
-                <div className="font-mono text-[10px] uppercase tracking-widest mb-1">Generation Error</div>
-                {error}
+                <div className="font-mono text-[10px] uppercase tracking-widest mb-1">
+                  {/credits? (are )?exhausted/i.test(error) ? 'AI Credits Exhausted' : 'Generation Error'}
+                </div>
+                <div>{error}</div>
+                {/credits? (are )?exhausted/i.test(error) && (
+                  <a
+                    href="https://lovable.dev/settings/workspace"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block mt-2 font-mono text-[11px] uppercase tracking-widest underline"
+                  >
+                    Add credits →
+                  </a>
+                )}
               </AlertDescription>
             </Alert>
           )}
