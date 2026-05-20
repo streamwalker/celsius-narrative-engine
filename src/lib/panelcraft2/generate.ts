@@ -12,16 +12,54 @@ export interface GeneratedIssue extends PanelcraftIssue {
   treatment: string;
 }
 
+export class GenerateError extends Error {
+  code: 'credits_exhausted' | 'rate_limited' | 'unknown';
+  constructor(message: string, code: GenerateError['code'] = 'unknown') {
+    super(message);
+    this.code = code;
+  }
+}
+
 export async function generateBreakdown(input: GenerateInput): Promise<GeneratedIssue> {
   const { data, error } = await supabase.functions.invoke('panelcraft-generate', {
     body: input,
   });
 
   if (error) {
-    throw new Error(error.message || 'Generation failed.');
+    // Try to read the underlying response body for a meaningful status + message
+    const ctx: any = (error as any).context;
+    let status: number | undefined;
+    let bodyMsg: string | undefined;
+    try {
+      if (ctx?.response) {
+        status = ctx.response.status;
+        const txt = await ctx.response.clone().text();
+        try {
+          const j = JSON.parse(txt);
+          bodyMsg = j.error || j.message;
+        } catch {
+          bodyMsg = txt;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    if (status === 402) {
+      throw new GenerateError(
+        'AI credits are exhausted for this workspace. Add funds in Lovable Cloud workspace settings, then try again.',
+        'credits_exhausted',
+      );
+    }
+    if (status === 429) {
+      throw new GenerateError(
+        'Rate limit reached. Please wait a moment and try again.',
+        'rate_limited',
+      );
+    }
+    throw new GenerateError(bodyMsg || error.message || 'Generation failed.');
   }
   if (!data || (data as any).error) {
-    throw new Error((data as any)?.error || 'Generation failed.');
+    throw new GenerateError((data as any)?.error || 'Generation failed.');
   }
   return data as GeneratedIssue;
 }
