@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, RotateCcw, FileText, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, RotateCcw, FileText, LayoutGrid, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Focus } from 'lucide-react';
+import { Toggle } from '@/components/ui/toggle';
 import { toast } from 'sonner';
 import type { PanelcraftIssue, Page } from '@/lib/panelcraft/types';
 import { STORAGE_KEY } from '@/lib/panelcraft/constants';
@@ -22,8 +23,16 @@ export default function Panelcraft() {
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
   const [showExport, setShowExport] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [showPages, setShowPages] = useState(true);
+  const [showRail, setShowRail] = useState(true);
   const hasLoaded = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const focusMode = !showPages && !showRail;
+  const toggleFocus = () => {
+    if (focusMode) { setShowPages(true); setShowRail(true); }
+    else { setShowPages(false); setShowRail(false); }
+  };
 
   useEffect(() => {
     try {
@@ -99,6 +108,36 @@ export default function Panelcraft() {
             }`}>
               {saveStatus === 'saving' ? '◌ saving' : saveStatus === 'saved' ? '✓ saved' : '◯ idle'}
             </span>
+            <div className="hidden md:flex items-center gap-1 mr-1">
+              <Toggle
+                size="sm"
+                pressed={showPages}
+                onPressedChange={setShowPages}
+                aria-label="Toggle pages list"
+                title="Toggle pages list"
+              >
+                {showPages ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+              </Toggle>
+              <Toggle
+                size="sm"
+                pressed={showRail}
+                onPressedChange={setShowRail}
+                aria-label="Toggle tension rail"
+                title="Toggle tension + craft rail"
+                className="hidden lg:inline-flex"
+              >
+                {showRail ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+              </Toggle>
+              <Toggle
+                size="sm"
+                pressed={focusMode}
+                onPressedChange={toggleFocus}
+                aria-label="Focus mode"
+                title="Focus mode (hide all rails)"
+              >
+                <Focus className="h-4 w-4" />
+              </Toggle>
+            </div>
             <Button variant="outline" size="sm" onClick={resetToDefaults} title="Reset to Issue 2 breakdown">
               <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
             </Button>
@@ -128,68 +167,90 @@ export default function Panelcraft() {
             <PageEditor page={currentPage} onChange={updatePage} />
           </div>
 
-          {/* md/lg: resizable two-pane (pages + editor) */}
-          <ResizablePanelGroup direction="horizontal" autoSaveId="panelcraft:layout:md" className="hidden md:flex lg:hidden">
-            <ResizablePanel defaultSize={22} minSize={14} maxSize={40} className="bg-card/40">
-              <div className="h-full overflow-y-auto">
-                <div className="px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground sticky top-0 bg-card/60 backdrop-blur border-b border-border z-10">
-                  Pages · {issue.pages.length}
-                </div>
-                {issue.pages.map(p => (
-                  <PageListItem key={p.number} page={p} active={p.number === currentPageNumber} onSelect={() => setCurrentPageNumber(p.number)} />
-                ))}
-              </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={78} minSize={40}>
+          {/* md only: pages + editor */}
+          <ResizablePanelGroup
+            key={`md-${showPages}`}
+            direction="horizontal"
+            autoSaveId="panelcraft:layout:md"
+            className="hidden md:flex lg:hidden"
+          >
+            {showPages && (
+              <>
+                <ResizablePanel defaultSize={22} minSize={14} maxSize={40} className="bg-card/40">
+                  <div className="h-full overflow-y-auto">
+                    <div className="px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground sticky top-0 bg-card/60 backdrop-blur border-b border-border z-10">
+                      Pages · {issue.pages.length}
+                    </div>
+                    {issue.pages.map(p => (
+                      <PageListItem key={p.number} page={p} active={p.number === currentPageNumber} onSelect={() => setCurrentPageNumber(p.number)} />
+                    ))}
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+              </>
+            )}
+            <ResizablePanel defaultSize={showPages ? 78 : 100} minSize={40}>
               <div className="h-full overflow-y-auto p-4 lg:p-6">
                 <PageEditor page={currentPage} onChange={updatePage} />
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
 
-          {/* lg+: resizable three-pane */}
-          <ResizablePanelGroup direction="horizontal" autoSaveId="panelcraft:layout:lg" className="hidden lg:flex">
-            <ResizablePanel defaultSize={18} minSize={10} maxSize={35} className="bg-card/40">
-              <div className="h-full overflow-y-auto">
-                <div className="px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground sticky top-0 bg-card/60 backdrop-blur border-b border-border z-10">
-                  Pages · {issue.pages.length}
-                </div>
-                {issue.pages.map(p => (
-                  <PageListItem key={p.number} page={p} active={p.number === currentPageNumber} onSelect={() => setCurrentPageNumber(p.number)} />
-                ))}
-              </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={56} minSize={30}>
-              <div className="h-full overflow-y-auto p-4 lg:p-6 xl:p-8">
+          {/* lg+: pages + editor + rail */}
+          <ResizablePanelGroup
+            key={`lg-${showPages}-${showRail}`}
+            direction="horizontal"
+            autoSaveId="panelcraft:layout:lg"
+            className="hidden lg:flex"
+          >
+            {showPages && (
+              <>
+                <ResizablePanel defaultSize={18} minSize={10} maxSize={35} className="bg-card/40">
+                  <div className="h-full overflow-y-auto">
+                    <div className="px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground sticky top-0 bg-card/60 backdrop-blur border-b border-border z-10">
+                      Pages · {issue.pages.length}
+                    </div>
+                    {issue.pages.map(p => (
+                      <PageListItem key={p.number} page={p} active={p.number === currentPageNumber} onSelect={() => setCurrentPageNumber(p.number)} />
+                    ))}
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+              </>
+            )}
+            <ResizablePanel defaultSize={focusMode ? 100 : showPages && showRail ? 56 : showPages ? 82 : showRail ? 74 : 100} minSize={30}>
+              <div className={`h-full overflow-y-auto p-4 lg:p-6 xl:p-8 ${focusMode ? 'mx-auto max-w-4xl' : ''}`}>
                 <PageEditor page={currentPage} onChange={updatePage} />
               </div>
             </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={26} minSize={15} maxSize={45} className="bg-card/40">
-              <div className="h-full overflow-y-auto p-4 space-y-4">
-                <div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest mb-2 text-muted-foreground">
-                    Story Arc · Tension
-                  </div>
-                  <div className="rounded p-2 bg-background border border-border">
-                    <StoryArcGraph pages={issue.pages} currentPage={currentPageNumber} onSelect={setCurrentPageNumber} />
-                    <div className="flex justify-between mt-1 font-mono text-[9px] text-muted-foreground">
-                      <span>p.1</span>
-                      <span className="text-destructive">● cliffhanger</span>
-                      <span>p.{issue.pages.length}</span>
+            {showRail && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={26} minSize={15} maxSize={45} className="bg-card/40">
+                  <div className="h-full overflow-y-auto p-4 space-y-4">
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-widest mb-2 text-muted-foreground">
+                        Story Arc · Tension
+                      </div>
+                      <div className="rounded p-2 bg-background border border-border">
+                        <StoryArcGraph pages={issue.pages} currentPage={currentPageNumber} onSelect={setCurrentPageNumber} />
+                        <div className="flex justify-between mt-1 font-mono text-[9px] text-muted-foreground">
+                          <span>p.1</span>
+                          <span className="text-destructive">● cliffhanger</span>
+                          <span>p.{issue.pages.length}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-mono text-[10px] uppercase tracking-widest mb-2 text-muted-foreground">
+                        Craft Check · Page {currentPage.number}
+                      </div>
+                      <CraftPanel issues={issues} />
                     </div>
                   </div>
-                </div>
-                <div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest mb-2 text-muted-foreground">
-                    Craft Check · Page {currentPage.number}
-                  </div>
-                  <CraftPanel issues={issues} />
-                </div>
-              </div>
-            </ResizablePanel>
+                </ResizablePanel>
+              </>
+            )}
           </ResizablePanelGroup>
         </div>
       </div>
