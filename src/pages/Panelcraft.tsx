@@ -144,6 +144,23 @@ export default function Panelcraft() {
               >
                 <Focus className="h-4 w-4" />
               </Toggle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  try {
+                    Object.keys(localStorage).filter(k => k.startsWith('panelcraft:layout:') || k.startsWith('panelcraft:ui:')).forEach(k => localStorage.removeItem(k));
+                  } catch {}
+                  setShowPages(true);
+                  setShowRail(true);
+                  toast.success('Layout reset');
+                  setTimeout(() => window.location.reload(), 250);
+                }}
+                title="Reset panel widths"
+                className="font-mono text-[10px] tracking-widest text-muted-foreground"
+              >
+                reset layout
+              </Button>
             </div>
             <Button variant="outline" size="sm" onClick={resetToDefaults} title="Reset to Issue 2 breakdown">
               <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset
