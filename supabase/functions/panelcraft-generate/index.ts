@@ -131,25 +131,19 @@ serve(async (req) => {
     const data = await response.json();
     let text: string = data.choices?.[0]?.message?.content ?? "";
 
-    if (text.startsWith("```")) {
-      text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-    }
-
     let parsed: any;
     try {
-      parsed = JSON.parse(text);
-    } catch {
-      return new Response(
-        JSON.stringify({ error: `Model returned invalid JSON. First 300 chars: ${text.slice(0, 300)}` }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      parsed = extractJson(text);
+    } catch (e) {
+      console.error("Invalid model JSON:", e, text.slice(0, 1000));
+      return jsonResponse({
+        code: "invalid_model_json",
+        error: e instanceof Error ? e.message : "The model returned invalid JSON. Please try again.",
+      });
     }
 
     if (!parsed || !Array.isArray(parsed.pages) || parsed.pages.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Response missing pages array." }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return jsonResponse({ code: "invalid_model_json", error: "Response missing pages array. Please try again." });
     }
 
     const pages = parsed.pages.map((p: any, i: number) => ({
@@ -161,20 +155,14 @@ serve(async (req) => {
       panels: [],
     }));
 
-    return new Response(
-      JSON.stringify({
-        title: String(parsed.title || title || "Untitled Issue"),
-        theme: String(parsed.theme || theme || ""),
-        treatment,
-        pages,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return jsonResponse({
+      title: String(parsed.title || title || "Untitled Issue"),
+      theme: String(parsed.theme || theme || ""),
+      treatment,
+      pages,
+    });
   } catch (e) {
     console.error("panelcraft-generate error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return jsonResponse({ code: "server_error", error: e instanceof Error ? e.message : "Unknown error" });
   }
 });
