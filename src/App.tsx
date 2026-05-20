@@ -21,6 +21,7 @@ import {
 import NarrativeEngine from "./pages/NarrativeEngine";
 import NarrativeEngineGuide from "./pages/NarrativeEngineGuide";
 import Panelcraft from "./pages/Panelcraft";
+import Panelcraft2 from "./pages/Panelcraft2";
 import Characters from "./pages/Characters";
 import CharacterBuilder from "./pages/CharacterBuilder";
 import AstralnautStudios from "./pages/AstralnautStudios";
@@ -64,6 +65,7 @@ const App = () => (
                 <Route path="/narrative-engine" element={<NarrativeEngine />} />
                 <Route path="/narrative-engine/guide" element={<NarrativeEngineGuide />} />
                 <Route path="/narrative-engine/panelcraft" element={<Panelcraft />} />
+                <Route path="/narrative-engine/panelcraft-2" element={<Panelcraft2 />} />
                 <Route path="/characters" element={<Characters />} />
                 <Route path="/character-builder" element={<CharacterBuilder />} />
                 <Route path="/astralnaut-studios" element={<AstralnautStudios />} />

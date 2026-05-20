@@ -39,6 +39,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/library", label: "Library", icon: Library },
       { href: "/narrative-engine", label: "Narrative Engine", icon: Sparkles },
       { href: "/narrative-engine/panelcraft", label: "Panelcraft", icon: LayoutGrid },
+      { href: "/narrative-engine/panelcraft-2", label: "Panelcraft 2", icon: LayoutGrid },
       { href: "/letter-page", label: "Letter a Page", icon: Wand2 },
     ],
   },
