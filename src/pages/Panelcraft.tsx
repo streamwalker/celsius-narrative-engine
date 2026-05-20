@@ -178,12 +178,12 @@ export default function Panelcraft() {
           <ResizablePanelGroup
             key={`md-${showPages}`}
             direction="horizontal"
-            autoSaveId="panelcraft:layout:md"
+            autoSaveId="panelcraft:layout:md:v2"
             className="hidden md:flex lg:hidden"
           >
             {showPages && (
               <>
-                <ResizablePanel defaultSize={22} minSize={14} maxSize={40} className="bg-card/40">
+                <ResizablePanel id="md-pages" order={1} defaultSize={22} minSize={14} maxSize={35} className="bg-card/40">
                   <div className="h-full overflow-y-auto">
                     <div className="px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground sticky top-0 bg-card/60 backdrop-blur border-b border-border z-10">
                       Pages · {issue.pages.length}
@@ -196,7 +196,7 @@ export default function Panelcraft() {
                 <ResizableHandle withHandle />
               </>
             )}
-            <ResizablePanel defaultSize={showPages ? 78 : 100} minSize={40}>
+            <ResizablePanel id="md-editor" order={2} defaultSize={showPages ? 78 : 100} minSize={50}>
               <div className="h-full overflow-y-auto p-4 lg:p-6">
                 <PageEditor page={currentPage} onChange={updatePage} />
               </div>
@@ -207,12 +207,12 @@ export default function Panelcraft() {
           <ResizablePanelGroup
             key={`lg-${showPages}-${showRail}`}
             direction="horizontal"
-            autoSaveId="panelcraft:layout:lg"
+            autoSaveId="panelcraft:layout:lg:v2"
             className="hidden lg:flex"
           >
             {showPages && (
               <>
-                <ResizablePanel defaultSize={18} minSize={10} maxSize={35} className="bg-card/40">
+                <ResizablePanel id="lg-pages" order={1} defaultSize={18} minSize={10} maxSize={30} className="bg-card/40">
                   <div className="h-full overflow-y-auto">
                     <div className="px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground sticky top-0 bg-card/60 backdrop-blur border-b border-border z-10">
                       Pages · {issue.pages.length}
@@ -225,7 +225,12 @@ export default function Panelcraft() {
                 <ResizableHandle withHandle />
               </>
             )}
-            <ResizablePanel defaultSize={focusMode ? 100 : showPages && showRail ? 56 : showPages ? 82 : showRail ? 74 : 100} minSize={30}>
+            <ResizablePanel
+              id="lg-editor"
+              order={2}
+              defaultSize={focusMode ? 100 : showPages && showRail ? 56 : showPages ? 82 : showRail ? 74 : 100}
+              minSize={45}
+            >
               <div className={`h-full overflow-y-auto p-4 lg:p-6 xl:p-8 ${focusMode ? 'mx-auto max-w-4xl' : ''}`}>
                 <PageEditor page={currentPage} onChange={updatePage} />
               </div>
@@ -233,7 +238,7 @@ export default function Panelcraft() {
             {showRail && (
               <>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={26} minSize={15} maxSize={45} className="bg-card/40">
+                <ResizablePanel id="lg-rail" order={3} defaultSize={26} minSize={15} maxSize={40} className="bg-card/40">
                   <div className="h-full overflow-y-auto p-4 space-y-4">
                     <div>
                       <div className="font-mono text-[10px] uppercase tracking-widest mb-2 text-muted-foreground">
