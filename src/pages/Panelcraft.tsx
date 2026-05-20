@@ -23,10 +23,17 @@ export default function Panelcraft() {
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
   const [showExport, setShowExport] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [showPages, setShowPages] = useState(true);
-  const [showRail, setShowRail] = useState(true);
+  const [showPages, setShowPages] = useState<boolean>(() => {
+    try { const v = localStorage.getItem('panelcraft:ui:showPages'); return v === null ? true : v === '1'; } catch { return true; }
+  });
+  const [showRail, setShowRail] = useState<boolean>(() => {
+    try { const v = localStorage.getItem('panelcraft:ui:showRail'); return v === null ? true : v === '1'; } catch { return true; }
+  });
   const hasLoaded = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { try { localStorage.setItem('panelcraft:ui:showPages', showPages ? '1' : '0'); } catch {} }, [showPages]);
+  useEffect(() => { try { localStorage.setItem('panelcraft:ui:showRail', showRail ? '1' : '0'); } catch {} }, [showRail]);
 
   const focusMode = !showPages && !showRail;
   const toggleFocus = () => {
