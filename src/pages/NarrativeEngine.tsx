@@ -462,6 +462,9 @@ export default function NarrativeEngine() {
             <Button variant="outline" size="sm" onClick={() => navigate('/narrative-engine/guide')} className="hidden sm:flex">
               <BookOpen className="h-3.5 w-3.5 mr-1" /> Guide
             </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/narrative-engine/panelcraft')} className="hidden sm:flex">
+              <LayoutGrid className="h-3.5 w-3.5 mr-1" /> Panelcraft
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="h-3.5 w-3.5 mr-1" /> JSON
             </Button>

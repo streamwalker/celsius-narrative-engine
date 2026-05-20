@@ -13,6 +13,7 @@ import {
   Scale,
   ChevronRight,
   Wand2,
+  LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -37,6 +38,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/script-formatter", label: "Script Formatter", icon: FileText },
       { href: "/library", label: "Library", icon: Library },
       { href: "/narrative-engine", label: "Narrative Engine", icon: Sparkles },
+      { href: "/narrative-engine/panelcraft", label: "Panelcraft", icon: LayoutGrid },
       { href: "/letter-page", label: "Letter a Page", icon: Wand2 },
     ],
   },
