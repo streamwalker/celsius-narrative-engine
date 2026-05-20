@@ -14,6 +14,7 @@ import { PageEditor } from '@/components/panelcraft/PageEditor';
 import { StoryArcGraph } from '@/components/panelcraft/StoryArcGraph';
 import { CraftPanel } from '@/components/panelcraft/CraftPanel';
 import { ExportDialog } from '@/components/panelcraft/ExportDialog';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 
 export default function Panelcraft() {
   const navigate = useNavigate();
