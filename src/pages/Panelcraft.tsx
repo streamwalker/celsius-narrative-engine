@@ -23,8 +23,16 @@ export default function Panelcraft() {
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
   const [showExport, setShowExport] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [showPages, setShowPages] = useState(true);
+  const [showRail, setShowRail] = useState(true);
   const hasLoaded = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const focusMode = !showPages && !showRail;
+  const toggleFocus = () => {
+    if (focusMode) { setShowPages(true); setShowRail(true); }
+    else { setShowPages(false); setShowRail(false); }
+  };
 
   useEffect(() => {
     try {
