@@ -91,9 +91,10 @@ serve(async (req) => {
       if (response.status === 402) {
         return new Response(
           JSON.stringify({
+            code: "credits_exhausted",
             error: "AI credits exhausted. Add funds in Lovable Cloud workspace settings.",
           }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
       const t = await response.text();
