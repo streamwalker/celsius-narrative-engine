@@ -40,6 +40,39 @@ OUTPUT SCHEMA
 
 Generate the breakdown for the provided treatment now. Respond with JSON only.`;
 
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+function extractJson(text: string): unknown {
+  let cleaned = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+
+  const start = cleaned.search(/[\{\[]/);
+  if (start === -1) throw new Error("The model returned an empty response instead of JSON.");
+
+  const opener = cleaned[start];
+  const closer = opener === "[" ? "]" : "}";
+  const end = cleaned.lastIndexOf(closer);
+  if (end === -1 || end <= start) throw new Error("The model response was incomplete JSON.");
+
+  cleaned = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    return JSON.parse(
+      cleaned
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*]/g, "]")
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ""),
+    );
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -47,10 +80,7 @@ serve(async (req) => {
     const { title, theme, treatment, targetPages } = await req.json();
 
     if (typeof treatment !== "string" || treatment.trim().length < 20) {
-      return new Response(JSON.stringify({ error: "Treatment is too short." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ code: "invalid_input", error: "Treatment is too short." });
     }
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
@@ -74,6 +104,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
+        temperature: 0.2,
+        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userMessage },
@@ -83,50 +115,35 @@ serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limited. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        return jsonResponse({ code: "rate_limited", error: "Rate limited. Please try again in a moment." });
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({
-            code: "credits_exhausted",
-            error: "AI credits exhausted. Add funds in Lovable Cloud workspace settings.",
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        return jsonResponse({
+          code: "credits_exhausted",
+          error: "AI credits exhausted. Add funds in Lovable Cloud workspace settings.",
+        });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ code: "ai_gateway_error", error: "AI gateway error. Please try again." });
     }
 
     const data = await response.json();
     let text: string = data.choices?.[0]?.message?.content ?? "";
 
-    if (text.startsWith("```")) {
-      text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
-    }
-
     let parsed: any;
     try {
-      parsed = JSON.parse(text);
-    } catch {
-      return new Response(
-        JSON.stringify({ error: `Model returned invalid JSON. First 300 chars: ${text.slice(0, 300)}` }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      parsed = extractJson(text);
+    } catch (e) {
+      console.error("Invalid model JSON:", e, text.slice(0, 1000));
+      return jsonResponse({
+        code: "invalid_model_json",
+        error: e instanceof Error ? e.message : "The model returned invalid JSON. Please try again.",
+      });
     }
 
     if (!parsed || !Array.isArray(parsed.pages) || parsed.pages.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Response missing pages array." }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return jsonResponse({ code: "invalid_model_json", error: "Response missing pages array. Please try again." });
     }
 
     const pages = parsed.pages.map((p: any, i: number) => ({
@@ -138,20 +155,14 @@ serve(async (req) => {
       panels: [],
     }));
 
-    return new Response(
-      JSON.stringify({
-        title: String(parsed.title || title || "Untitled Issue"),
-        theme: String(parsed.theme || theme || ""),
-        treatment,
-        pages,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return jsonResponse({
+      title: String(parsed.title || title || "Untitled Issue"),
+      theme: String(parsed.theme || theme || ""),
+      treatment,
+      pages,
+    });
   } catch (e) {
     console.error("panelcraft-generate error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return jsonResponse({ code: "server_error", error: e instanceof Error ? e.message : "Unknown error" });
   }
 });
