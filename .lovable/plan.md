@@ -1,38 +1,64 @@
-## Add "Content Outline (Feb 2019)" to /darker-ages
 
-The Feb 2019 content outline (Season One: "The Darkest Dawn") is **not** currently on the page. The closest existing section is the "Story Plan — Three-Act / Eight-Sequence Breakdown", which is a different, later draft (Maven/Shinobu/Titus + Corbin Rothchylde nexus quest). The Feb 2019 outline features a different cast (Maven, Shinobu, Will/Ser Will, Owen, Estelle, Tiger) and structure, so it should live as its own section.
+# Incorporate Panelcraft into the Narrative Engine
 
-### Plan
+Panelcraft is a page-by-page comic scripting workbench: per-page panel cards with `function` tags (SETUP, ESCALATE, TURN, REVEAL, CLIMAX…), tone-tagged dialogue/caption/SFX lines, automatic craft-check warnings (page-turn discipline, dialogue density, COMBAT-without-SFX, tonal monotony), a tension arc graph for the issue, and a one-click industry-format script export.
 
-1. **Create** `src/components/storyplans/DarkerAgesContentOutlineFeb2019.tsx`
-   - Follows the exact pattern of `DarkerAgesStoryPlan.tsx` (uses `PageSection`, `Heading`, `Pre` from `story-page-helpers`).
-   - `id="da-content-outline-feb2019"`, title `Content Outline (Feb 2019) — Season One: "The Darkest Dawn"`.
-   - Sections rendered as `Heading` + `Pre` blocks, preserving the user's text verbatim:
-     - Top notes (central character / midpoint motivation)
-     - Act 1 — SQ1-A: Intro / Status Quo (A, B, C, D, D.1, D.2)
-     - Act 1 — SQ1-B: Inciting Incident
-     - Act 1 — SQ2-A: Big Event
-     - Act 1 — SQ2-B: Champion unleashed
-     - Act 2 — SQ3-A: First Obstacle
-     - Act 2 — SQ3-B: Baylor / Blood of Ne'vam
-     - Act 2 — SQ3-C: Opposition closes in
-     - Act 2 — SQ4: Midpoint Culmination
-     - Act 2 — SQ5: All Is Lost
-     - Act 2 — SQ6: Main Culmination
-     - Act 3 — SQ7: Climax & Twist
-     - Act 3 — SQ8: Resolution
-     - Act 3 — SQ8A: Denouement
-     - Alternate Opening
-     - Character Flaws / Naming notes (Shin = Natsume Obunaga)
+The uploaded file is a single-file React/JS prototype with inline styles and a `window.storage` persistence hook. We will refactor it into the project's stack (TypeScript, Tailwind semantic tokens, shadcn, Supabase) and surface it inside the Narrative Engine.
 
-2. **Edit** `src/pages/DarkerAges.tsx`
-   - Import the new component.
-   - Add a new entry to `darkerAgesSections` (placed just before `da-story-plan` so it reads chronologically as an earlier draft):
-     `{ id: "da-content-outline-feb2019", label: 'Content Outline (Feb 2019) — Season One: "The Darkest Dawn"' }`
-   - Add a matching `pageContent` search-keyword entry (Maven Shinobu Will Owen Estelle Tiger Wraiths Baylor Ne'vam Omagaia Alessandra Dark Queen Champion Hunter Dyson Sphere etc.).
-   - Render `{visibleIds.has("da-content-outline-feb2019") && <DarkerAgesContentOutlineFeb2019 />}` directly above the Story Plan render.
+## Where it lives
 
-### Out of scope
-- No changes to glossary, knowledge layer, or other story pages.
-- No reformatting of existing sections.
-- No new design tokens — reuses existing `PageSection`/`Heading`/`Pre` styling.
+- New route: `/narrative-engine/panelcraft` (rendered inside `AppLayout` like the rest of the engine).
+- New sidebar entry under **Workshop**: "Panelcraft" (icon: `LayoutGrid`), placed next to "Narrative Engine".
+- New button on the Narrative Engine page header: **"Open Panelcraft →"** so the two tools feel like one product.
+
+## Files to create
+
+1. **`src/lib/panelcraft/types.ts`** — `PanelFunction`, `LineType`, `ToneTag`, `PanelLine`, `Panel`, `Page`, `PanelcraftIssue` (`{ id, title, theme, pages }`).
+2. **`src/lib/panelcraft/constants.ts`** — `PANEL_FUNCTIONS`, `FUNCTION_MAP`, `TONE_TAGS`, `LINE_TYPES`. Colors moved to semantic tokens (`--accent`, `--destructive`, `--muted-foreground`, etc.) instead of raw hex.
+3. **`src/lib/panelcraft/checks.ts`** — pure `checksForPage(page)` and `tensionForPage(page)` ported verbatim from the prototype.
+4. **`src/lib/panelcraft/export.ts`** — `exportPanelcraftScript(issue): string` extracted from `ExportView`.
+5. **`src/lib/panelcraft/sample-issue.ts`** — `makeIssue2()` (the 32-page Children of Aquarius Issue 2 stub + worked examples for pages 1–3) preserved as a seed/template the user can load.
+6. **`src/components/panelcraft/PageListItem.tsx`** — left-rail page list item with tension gradient bar, side badge (L/R), cliffhanger dot.
+7. **`src/components/panelcraft/LineRow.tsx`** — one dialogue/caption/SFX line row (type select, character input for speech, text input, tone select, delete).
+8. **`src/components/panelcraft/PanelCard.tsx`** — panel card with function selector, word count, description textarea, lines list, add-line buttons.
+9. **`src/components/panelcraft/PageEditor.tsx`** — center column: page title, summary, cliffhanger toggle (R-pages only), panels, "+ Add Panel".
+10. **`src/components/panelcraft/StoryArcGraph.tsx`** — right-rail SVG tension graph (clickable nodes, current-page marker, cliffhanger dots).
+11. **`src/components/panelcraft/CraftPanel.tsx`** — right-rail issue list (warn vs note styling).
+12. **`src/components/panelcraft/ExportDialog.tsx`** — shadcn `Dialog` wrapping a `<pre>` of the formatted script with Copy and Download buttons.
+13. **`src/pages/Panelcraft.tsx`** — the page composition: header (project title input, save indicator, Reset, Export, Back to Narrative Engine), three-column layout (page list / editor / arc+craft). Wrapped in `AppLayout`.
+
+## Files to edit
+
+- **`src/App.tsx`** — add `<Route path="/narrative-engine/panelcraft" element={<Panelcraft />} />` and the import.
+- **`src/components/AppSidebar.tsx`** — add `{ href: "/narrative-engine/panelcraft", label: "Panelcraft", icon: LayoutGrid }` in the Workshop section right after Narrative Engine.
+- **`src/pages/NarrativeEngine.tsx`** — add a small "Open Panelcraft" `Button` (variant `outline`, icon `LayoutGrid`) in the existing header action row, navigating to `/narrative-engine/panelcraft`. No other changes to engine logic.
+
+## Persistence
+
+Panelcraft uses localStorage (key `panelcraft:state:v1`) for autosave, matching the prototype and the engine's existing `narrative-engine-data` pattern. Debounced 600ms save with idle/saving/saved indicator. Reset button reloads `makeIssue2()` after confirm. (No DB schema changes in this phase — projects table integration can come later if requested; out of scope here.)
+
+## Design system compliance
+
+- Replace every inline hex (`#0a0e14`, `#e8a83a`, `#e94f37`, `#161b22`, etc.) with semantic Tailwind tokens already in `index.css` / `tailwind.config.ts`: `bg-background`, `text-foreground`, `text-accent`, `text-destructive`, `border-border`, `bg-muted`, etc. Function-tag colors become a small theme map using HSL CSS variables (`hsl(var(--accent))` for ESCALATE/TURN, `hsl(var(--destructive))` for REVEAL/CLIMAX, `hsl(var(--muted-foreground))` for SETUP/BEAT).
+- Use shadcn `Button`, `Input`, `Textarea`, `Select`, `Dialog`, `Badge`, `Tooltip`, `ScrollArea` instead of raw HTML elements with inline styles.
+- Use `lucide-react` icons (`LayoutGrid`, `Plus`, `Trash2`, `Download`, `Copy`, `RotateCcw`) — drop the Unicode `×` / `●` glyphs.
+- Drop the prototype's inline `<style>` Google-Fonts import; the app already loads fonts globally.
+
+## Functional fidelity (preserved exactly)
+
+- All 9 panel functions with tension weights 1–9.
+- All 16 tone tags.
+- All 6 line types (DIALOGUE / CAPTION / THOUGHT / WHISPER / SHOUT / SFX).
+- Craft checks: R-page cliffhanger must end on TURN/REVEAL/CLIMAX; 1 panel = splash warning; ≥8 panels = density warn; per-panel tonal monotony info; >25 / >35 words density notes; COMBAT without SFX info; empty description info.
+- Tension graph: average of panel tensions per page, click to navigate, current-page marker line, red dots for R-page cliffhangers.
+- Export format: `PAGE ONE (THREE PANELS)`, `[Title — CLIFFHANGER]`, panel description block, `CHARACTER (thought) (tone)` blocks, SFX/CAPTION lines, blank lines between panels — bit-for-bit the same output as the prototype.
+- Issue 2 seed data (32 stubbed pages + 3 worked examples) preserved verbatim.
+
+## Out of scope (call out for the user)
+
+- Saving Panelcraft issues into the Supabase `story_projects` table alongside Narrative Engine projects.
+- AI assistance for panel descriptions / craft suggestions.
+- PDF export.
+- Multi-issue management UI (only one issue lives in localStorage in this phase, same as the prototype).
+
+Happy to fold any of those in as a follow-up phase once the port is in.
