@@ -26,7 +26,7 @@ export function PageEditor({ page, onChange }: Props) {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full max-w-5xl mx-auto">
       <div className="flex items-baseline gap-3 mb-1 flex-wrap">
         <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           Page {page.number} · {page.side === 'R' ? 'Right' : 'Left'}
