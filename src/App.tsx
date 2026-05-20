@@ -21,6 +21,7 @@ import {
 import NarrativeEngine from "./pages/NarrativeEngine";
 import NarrativeEngineGuide from "./pages/NarrativeEngineGuide";
 import Panelcraft from "./pages/Panelcraft";
+import Panelcraft2 from "./pages/Panelcraft2";
 import Characters from "./pages/Characters";
 import CharacterBuilder from "./pages/CharacterBuilder";
 import AstralnautStudios from "./pages/AstralnautStudios";
