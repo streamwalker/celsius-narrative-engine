@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles, Loader2 } from 'lucide-react';
 import type { Page, Panel } from '@/lib/panelcraft/types';
 import { uid } from '@/lib/panelcraft/constants';
 import { PanelCard } from './PanelCard';
@@ -10,9 +11,11 @@ import { PanelCard } from './PanelCard';
 interface Props {
   page: Page;
   onChange: (page: Page) => void;
+  onAutoFillPanels?: (pageNumber: number) => Promise<Panel[]>;
 }
 
-export function PageEditor({ page, onChange }: Props) {
+export function PageEditor({ page, onChange, onAutoFillPanels }: Props) {
+  const [autoLoading, setAutoLoading] = useState(false);
   const update = (patch: Partial<Page>) => onChange({ ...page, ...patch });
 
   const addPanel = () => {
@@ -24,6 +27,18 @@ export function PageEditor({ page, onChange }: Props) {
   const deletePanel = (panelId: string) => {
     update({ panels: page.panels.filter(p => p.id !== panelId) });
   };
+
+  const handleAutoFill = async () => {
+    if (!onAutoFillPanels) return;
+    setAutoLoading(true);
+    try {
+      const panels = await onAutoFillPanels(page.number);
+      update({ panels: [...page.panels, ...panels] });
+    } finally {
+      setAutoLoading(false);
+    }
+  };
+
 
   return (
     <div className="w-full max-w-5xl mx-auto">
