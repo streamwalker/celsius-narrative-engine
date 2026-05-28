@@ -33,11 +33,12 @@ export function PageEditor({ page, onChange, onAutoFillPanels }: Props) {
     setAutoLoading(true);
     try {
       const panels = await onAutoFillPanels(page.number);
-      update({ panels: [...page.panels, ...panels] });
+      if (panels.length > 0) update({ panels: [...page.panels, ...panels] });
     } finally {
       setAutoLoading(false);
     }
   };
+
 
 
   return (
