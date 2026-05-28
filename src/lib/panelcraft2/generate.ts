@@ -21,13 +21,12 @@ export class GenerateError extends Error {
 }
 
 
-export async function generateBreakdown(input: GenerateInput): Promise<GeneratedIssue> {
+async function attemptGenerate(input: GenerateInput): Promise<GeneratedIssue> {
   const { data, error } = await supabase.functions.invoke('panelcraft-generate', {
     body: input,
   });
 
   if (error) {
-    // Try to read the underlying response body for a meaningful status + message
     const ctx: any = (error as any).context;
     let status: number | undefined;
     let bodyMsg: string | undefined;
@@ -70,3 +69,22 @@ export async function generateBreakdown(input: GenerateInput): Promise<Generated
 
   return data as GeneratedIssue;
 }
+
+export async function generateBreakdown(input: GenerateInput): Promise<GeneratedIssue> {
+  const MAX_ATTEMPTS = 2;
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await attemptGenerate(input);
+    } catch (err) {
+      lastErr = err;
+      if (err instanceof GenerateError && err.code === 'invalid_model_json' && attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 400));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
