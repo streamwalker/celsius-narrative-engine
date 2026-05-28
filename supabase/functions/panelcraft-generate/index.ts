@@ -46,7 +46,7 @@ const jsonResponse = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-function extractJson(text: string): unknown {
+export function extractJson(text: string): unknown {
   let cleaned = text
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/```\s*$/i, "")
