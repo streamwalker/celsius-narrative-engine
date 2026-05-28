@@ -1,46 +1,33 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  FileText,
-  Library,
-  Users,
-  UserPlus,
-  Rocket,
-  Feather,
-  Film,
-  Sparkles,
-  BookOpen,
-  Home,
-  Scale,
-  ChevronRight,
-  Wand2,
-  LayoutGrid,
+  FileText, Library, Users, UserPlus, Rocket, Feather, Film, Sparkles,
+  BookOpen, Home, Scale, Wand2, LayoutGrid, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+
+type Status = 'live' | 'phase' | undefined;
 
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
+  status?: Status;
 }
 
-interface NavSection {
-  label: string;
-  items: NavItem[];
-}
+interface NavSection { label: string; items: NavItem[] }
 
 const NAV_SECTIONS: NavSection[] = [
   {
     label: "Workshop",
     items: [
-      { href: "/", label: "Home", icon: Home },
-      { href: "/script-formatter", label: "Script Formatter", icon: FileText },
-      { href: "/library", label: "Library", icon: Library },
-      { href: "/narrative-engine", label: "Narrative Engine", icon: Sparkles },
-      { href: "/narrative-engine/panelcraft", label: "Panelcraft", icon: LayoutGrid },
-      { href: "/narrative-engine/panelcraft-2", label: "Panelcraft 2", icon: LayoutGrid },
-      { href: "/letter-page", label: "Letter a Page", icon: Wand2 },
+      { href: "/", label: "Home", icon: Home, status: "live" },
+      { href: "/script-formatter", label: "Script Formatter", icon: FileText, status: "live" },
+      { href: "/library", label: "Library", icon: Library, status: "live" },
+      { href: "/narrative-engine", label: "Narrative Engine", icon: Sparkles, status: "phase" },
+      { href: "/narrative-engine/panelcraft", label: "Panelcraft", icon: LayoutGrid, status: "phase" },
+      { href: "/narrative-engine/panelcraft-2", label: "Panelcraft 2", icon: LayoutGrid, status: "phase" },
+      { href: "/letter-page", label: "Letter a Page", icon: Wand2, status: "live" },
     ],
   },
   {
@@ -86,37 +73,44 @@ const NAV_SECTIONS: NavSection[] = [
 ];
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const location = useLocation();
-  const pathname = location.pathname;
+  const { pathname } = useLocation();
 
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
-      <div className="flex h-14 items-center gap-2 border-b border-border px-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
-          <span className="font-display text-sm font-bold text-primary">C°</span>
-        </div>
-        <div className="flex flex-col leading-tight">
-          <span className="font-display text-sm tracking-widest">CELSIUS</span>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Script → Graphic Novel
+      <div className="flex items-center gap-2.5 border-b border-dashed border-[hsl(var(--primary)/0.18)] px-3.5 pb-4 pt-4">
+        <div
+          className="relative grid h-9 w-9 place-items-center rounded-lg border border-primary"
+          style={{
+            background: 'radial-gradient(circle, hsl(var(--primary)/0.25), transparent 70%)',
+            boxShadow: '0 0 18px hsl(var(--primary)/0.35), inset 0 0 8px hsl(var(--primary)/0.4)',
+          }}
+        >
+          <span className="absolute inset-1 rounded-[5px] border border-[hsl(var(--primary)/0.45)] animate-spin-slow" />
+          <span className="font-display text-sm font-bold text-primary" style={{ textShadow: '0 0 8px hsl(var(--primary)/0.55)' }}>
+            C°
           </span>
+        </div>
+        <div className="leading-tight">
+          <div className="font-display text-sm font-bold tracking-[0.12em] text-foreground">CELSIUS</div>
+          <div className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
+            Script → Graphic Novel
+          </div>
         </div>
       </div>
 
       {/* Nav */}
-      <ScrollArea className="flex-1 px-2 py-4">
-        {NAV_SECTIONS.map((section, sectionIdx) => (
-          <div key={section.label} className={cn(sectionIdx > 0 && "mt-4")}>
-            <div className="px-3 pb-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {section.label}
+      <ScrollArea className="flex-1 px-2.5 py-3.5">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label} className="mb-4">
+            <div className="flex items-center justify-between px-1.5 pb-1.5 font-mono text-[9px] uppercase tracking-[0.24em] text-[hsl(var(--muted-foreground-2))]">
+              <span>{section.label}</span>
+              <span className="text-[hsl(var(--primary)/0.42)]">◇</span>
             </div>
             <nav className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname === item.href || pathname.startsWith(item.href + "/");
+                  item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(item.href + "/");
                 const Icon = item.icon;
                 return (
                   <Link
@@ -124,28 +118,32 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
                     to={item.href}
                     onClick={onNavigate}
                     className={cn(
-                      "group flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors",
+                      "group relative flex items-center gap-2.5 rounded-md border border-transparent px-2.5 py-1.5 text-xs transition-all",
                       isActive
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                        ? "text-primary border-[hsl(var(--primary)/0.42)]"
+                        : "text-[hsl(var(--text-1))] hover:text-foreground hover:border-[hsl(var(--primary)/0.18)] hover:bg-[hsl(var(--primary)/0.06)]"
                     )}
+                    style={isActive ? {
+                      background: 'linear-gradient(90deg, hsl(var(--primary)/0.18), hsl(var(--primary)/0.04))',
+                      boxShadow: 'inset 2px 0 0 hsl(var(--primary))',
+                    } : undefined}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className={cn("h-3.5 w-3.5 shrink-0", isActive ? "opacity-100" : "opacity-60")} strokeWidth={1.8} />
                     <span className="flex-1 truncate">{item.label}</span>
-                    {isActive && <ChevronRight className="h-3 w-3" />}
+                    {item.status === 'live' && <span className="status-dot ml-auto" style={{ width: 5, height: 5 }} />}
+                    {item.status === 'phase' && <span className="status-dot warn ml-auto" style={{ width: 5, height: 5 }} />}
                   </Link>
                 );
               })}
             </nav>
-            {sectionIdx < NAV_SECTIONS.length - 1 && <Separator className="mt-4 opacity-50" />}
           </div>
         ))}
       </ScrollArea>
 
       {/* Footer */}
-      <div className="border-t border-border p-3">
-        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Celsius v1.0
+      <div className="border-t border-[hsl(var(--primary)/0.18)] p-3">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--muted-foreground-2))]">
+          Celsius v1.9 · <span className="text-primary">●</span>
         </p>
       </div>
     </div>
