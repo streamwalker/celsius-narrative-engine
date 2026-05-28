@@ -36,11 +36,22 @@ export interface Page {
   panels: Panel[];
 }
 
+export interface IssueStructure {
+  /** Two 1-based page numbers: end of act 1, end of act 2. */
+  actBreaks: [number, number];
+  /** 1-based page number of the midpoint reversal. */
+  midpoint: number;
+  /** 1-based page number of the issue's main climax. */
+  climaxPage: number;
+}
+
 export interface PanelcraftIssue {
   title: string;
   theme: string;
+  structure?: IssueStructure;
   pages: Page[];
 }
+
 
 export interface PanelcraftIssueDef {
   id: PanelFunctionId;
