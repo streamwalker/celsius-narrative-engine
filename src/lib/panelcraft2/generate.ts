@@ -93,3 +93,75 @@ export async function generateBreakdown(input: GenerateInput): Promise<Generated
   throw lastErr;
 }
 
+
+// ---------- Panel-breakdown pass ----------
+
+interface GeneratePanelsPayload {
+  page: Pick<Page, 'number' | 'side' | 'title' | 'summary' | 'isCliffhanger'>;
+  prevPage?: Pick<Page, 'number' | 'side' | 'title' | 'summary' | 'isCliffhanger'>;
+  nextPage?: Pick<Page, 'number' | 'side' | 'title' | 'summary' | 'isCliffhanger'>;
+  theme?: string;
+}
+
+interface RawPanel {
+  function: Panel['function'];
+  shotType: ShotType;
+  transitionFromPrev: PanelTransition;
+  description: string;
+}
+
+export async function generatePanelsForPage(
+  issue: PanelcraftIssue,
+  pageNumber: number,
+): Promise<Panel[]> {
+  const idx = issue.pages.findIndex((p) => p.number === pageNumber);
+  if (idx === -1) throw new GenerateError('Page not found.');
+  const page = issue.pages[idx];
+  const payload: GeneratePanelsPayload = {
+    page: {
+      number: page.number, side: page.side, title: page.title,
+      summary: page.summary, isCliffhanger: page.isCliffhanger,
+    },
+    prevPage: idx > 0 ? (() => {
+      const p = issue.pages[idx - 1];
+      return { number: p.number, side: p.side, title: p.title, summary: p.summary, isCliffhanger: p.isCliffhanger };
+    })() : undefined,
+    nextPage: idx < issue.pages.length - 1 ? (() => {
+      const p = issue.pages[idx + 1];
+      return { number: p.number, side: p.side, title: p.title, summary: p.summary, isCliffhanger: p.isCliffhanger };
+    })() : undefined,
+    theme: issue.theme,
+  };
+
+  const MAX_ATTEMPTS = 2;
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const { data, error } = await supabase.functions.invoke('panelcraft-generate-panels', { body: payload });
+      if (error) throw new GenerateError(error.message || 'Panel generation failed.');
+      if (!data || (data as any).error) {
+        const raw = (data as any)?.code;
+        const code: GenerateError['code'] =
+          raw === 'credits_exhausted' || raw === 'rate_limited' || raw === 'invalid_model_json' ? raw : 'unknown';
+        throw new GenerateError((data as any)?.error || 'Panel generation failed.', code, (data as any)?.snippet);
+      }
+      const rawPanels = (data as { panels: RawPanel[] }).panels ?? [];
+      return rawPanels.map<Panel>((p) => ({
+        id: uid(),
+        function: p.function,
+        description: p.description ?? '',
+        lines: [],
+        shotType: p.shotType,
+        transitionFromPrev: p.transitionFromPrev,
+      }));
+    } catch (err) {
+      lastErr = err;
+      if (err instanceof GenerateError && err.code === 'invalid_model_json' && attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 400));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
