@@ -215,7 +215,7 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
                       Story Arc · Tension
                     </div>
                     <div className="rounded p-2 bg-background border border-border">
-                      <StoryArcGraph pages={issue.pages} currentPage={currentPageNumber} onSelect={setCurrentPageNumber} />
+                      <StoryArcGraph pages={issue.pages} currentPage={currentPageNumber} onSelect={setCurrentPageNumber} structure={issue.structure} />
                       <div className="flex justify-between mt-1 font-mono text-[9px] text-muted-foreground">
                         <span>p.1</span>
                         <span className="text-destructive">● cliffhanger</span>
