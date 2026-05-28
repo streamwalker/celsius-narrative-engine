@@ -67,7 +67,7 @@ async function attemptGenerate(input: GenerateInput): Promise<GeneratedIssue> {
       raw === 'credits_exhausted' || raw === 'rate_limited' || raw === 'invalid_model_json'
         ? raw
         : 'unknown';
-    throw new GenerateError((data as any)?.error || 'Generation failed.', code);
+    throw new GenerateError((data as any)?.error || 'Generation failed.', code, (data as any)?.snippet);
   }
 
   return data as GeneratedIssue;
