@@ -1,13 +1,15 @@
-import type { Page } from '@/lib/panelcraft/types';
+import type { Page, IssueStructure } from '@/lib/panelcraft/types';
 import { tensionForPage } from '@/lib/panelcraft/checks';
 
 interface Props {
   pages: Page[];
   currentPage: number;
   onSelect: (n: number) => void;
+  structure?: IssueStructure;
 }
 
-export function StoryArcGraph({ pages, currentPage, onSelect }: Props) {
+export function StoryArcGraph({ pages, currentPage, onSelect, structure }: Props) {
+
   const width = 280;
   const height = 100;
   const padX = 8;
@@ -37,8 +39,33 @@ export function StoryArcGraph({ pages, currentPage, onSelect }: Props) {
         const y = padY + innerH - (t / 9) * innerH;
         return <line key={t} x1={padX} y1={y} x2={padX + innerW} y2={y} stroke="hsl(var(--border))" strokeOpacity="0.4" />;
       })}
+      {structure && pages.length > 1 && (() => {
+        const xFor = (n: number) =>
+          padX + ((Math.min(Math.max(1, n), pages.length) - 1) / Math.max(1, pages.length - 1)) * innerW;
+        const a1 = xFor(structure.actBreaks[0]);
+        const mid = xFor(structure.midpoint);
+        const a2 = xFor(structure.actBreaks[1]);
+        const clx = xFor(structure.climaxPage);
+        const markers: Array<{ x: number; label: string; color: string }> = [
+          { x: a1, label: 'A1', color: 'hsl(var(--muted-foreground))' },
+          { x: mid, label: 'MID', color: 'hsl(var(--accent))' },
+          { x: a2, label: 'A2', color: 'hsl(var(--muted-foreground))' },
+          { x: clx, label: 'CLX', color: 'hsl(var(--destructive))' },
+        ];
+        return (
+          <g>
+            {markers.map((m) => (
+              <g key={m.label}>
+                <line x1={m.x} y1={padY} x2={m.x} y2={padY + innerH} stroke={m.color} strokeOpacity="0.45" strokeDasharray="3 3" />
+                <text x={m.x + 2} y={padY + 8} fontSize="6" fill={m.color} opacity="0.8">{m.label}</text>
+              </g>
+            ))}
+          </g>
+        );
+      })()}
       <path d={fillPath} fill="url(#pc-arcFill)" />
       <path d={path} fill="none" stroke="hsl(var(--accent))" strokeWidth="1.5" />
+
       {points.map((p, i) => {
         const page = pages[i];
         const isCurrent = page.number === currentPage;

@@ -6,13 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are PANELCRAFT, a comic book story editor. Your job is to convert a prose treatment for a single comic issue into a per-page breakdown.
+const SYSTEM_PROMPT = `You are PANELCRAFT, a comic book story editor. Your job is to convert a prose treatment for a single comic issue into a per-page breakdown PLUS the issue's structural skeleton.
 
 CRITICAL: Your output is pure JSON. No markdown fences. No preamble. No commentary. The first character must be { and the last must be }.
 
 METHODOLOGY
 
 Count discrete plot beats across all story tracks in the treatment (A-story, B-story, C-story, flashbacks, etc.). Determine page count: use the user's requested count if specified; otherwise 22 pages for treatments with about twenty or fewer beats, 32 pages for twenty-one or more beats.
+
+STORY STRUCTURE
+
+Identify the issue's 3-act skeleton in page numbers:
+- "actBreaks": [end-of-act-1, end-of-act-2] — the two pages where the act turns. Act 1 typically ends around 20-25% of total pages, act 2 around 70-80%.
+- "midpoint": the page where the story's central reversal or commitment lands — usually around 50% of total pages.
+- "climaxPage": the page where the issue's main confrontation or peak action occurs — usually 1-3 pages before the end.
+All four numbers must be valid 1-based page numbers within the issue, strictly increasing: actBreaks[0] < midpoint < actBreaks[1] < climaxPage.
 
 PAGE CONVENTIONS
 
@@ -27,6 +35,11 @@ OUTPUT SCHEMA
 {
   "title": "string (issue title)",
   "theme": "string (the issue's theme as stated or inferred)",
+  "structure": {
+    "actBreaks": [6, 18],
+    "midpoint": 12,
+    "climaxPage": 20
+  },
   "pages": [
     {
       "number": 1,
@@ -39,6 +52,7 @@ OUTPUT SCHEMA
 }
 
 Generate the breakdown for the provided treatment now. Respond with JSON only.`;
+
 
 const jsonResponse = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -159,12 +173,31 @@ serve(async (req) => {
       panels: [],
     }));
 
+    const total = pages.length;
+    const clampPage = (n: unknown, fallback: number): number => {
+      const v = typeof n === "number" && Number.isFinite(n) ? Math.round(n) : fallback;
+      return Math.min(Math.max(1, v), total);
+    };
+    const rawStruct = parsed.structure ?? {};
+    const rawBreaks = Array.isArray(rawStruct.actBreaks) ? rawStruct.actBreaks : [];
+    const a1 = clampPage(rawBreaks[0], Math.max(1, Math.round(total * 0.25)));
+    const mid = clampPage(rawStruct.midpoint, Math.max(a1 + 1, Math.round(total * 0.5)));
+    const a2 = clampPage(rawBreaks[1], Math.max(mid + 1, Math.round(total * 0.75)));
+    const climax = clampPage(rawStruct.climaxPage, Math.max(a2 + 1, total - 1));
+    const structure = {
+      actBreaks: [Math.min(a1, mid - 1), Math.max(a2, mid + 1)] as [number, number],
+      midpoint: mid,
+      climaxPage: Math.max(climax, a2),
+    };
+
     return jsonResponse({
       title: String(parsed.title || title || "Untitled Issue"),
       theme: String(parsed.theme || theme || ""),
       treatment,
+      structure,
       pages,
     });
+
   } catch (e) {
     console.error("panelcraft-generate error:", e);
     return jsonResponse({ code: "server_error", error: e instanceof Error ? e.message : "Unknown error" });

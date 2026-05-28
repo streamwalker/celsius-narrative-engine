@@ -56,7 +56,24 @@ export function PanelCard({ panel, index, onChange, onDelete }: Props) {
           <span className={cn('text-[10px] font-mono', totalWords > 25 ? 'text-destructive' : 'text-muted-foreground')}>
             {totalWords}w
           </span>
+          {panel.shotType && (
+            <span
+              className="text-[10px] font-mono tracking-wider px-1.5 py-0.5 rounded border border-border text-muted-foreground"
+              title="Shot type"
+            >
+              {panel.shotType}
+            </span>
+          )}
+          {panel.transitionFromPrev && panel.transitionFromPrev !== 'NONE' && (
+            <span
+              className="text-[10px] font-mono tracking-wider text-muted-foreground/70"
+              title="Transition from previous panel"
+            >
+              ↳ {panel.transitionFromPrev.replace(/_/g, '-').toLowerCase()}
+            </span>
+          )}
         </div>
+
         <Button
           variant="ghost"
           size="sm"

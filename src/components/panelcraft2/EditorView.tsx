@@ -22,10 +22,12 @@ import { CraftPanel } from '@/components/panelcraft/CraftPanel';
 import { ExportDialog } from '@/components/panelcraft/ExportDialog';
 import { checksForPage, tensionForPage } from '@/lib/panelcraft/checks';
 import type { Page } from '@/lib/panelcraft/types';
-import type { GeneratedIssue } from '@/lib/panelcraft2/generate';
+import { type GeneratedIssue, generatePanelsForPage, GenerateError } from '@/lib/panelcraft2/generate';
+import { toast } from 'sonner';
 import { PageListItemV2 } from './PageListItemV2';
 import { FunctionLegend } from './FunctionLegend';
 import { SourceDialog } from './SourceDialog';
+
 
 interface Props {
   issue: GeneratedIssue;
@@ -57,6 +59,22 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
   const updatePage = useCallback((updated: Page) => {
     onChange({ ...issue, pages: issue.pages.map(p => p.number === updated.number ? updated : p) });
   }, [issue, onChange]);
+
+  const autoFillPanels = useCallback(async (pageNumber: number) => {
+    try {
+      return await generatePanelsForPage(issue, pageNumber);
+    } catch (err) {
+      if (err instanceof GenerateError && err.code === 'invalid_model_json') {
+        toast.warning('The AI returned an unreadable panel breakdown.', {
+          description: err.snippet ? `Model returned: "${err.snippet}"` : 'Please try again.',
+        });
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Panel generation failed.');
+      }
+      return [];
+    }
+  }, [issue]);
+
 
   const currentPage = useMemo(
     () => issue.pages.find(p => p.number === currentPageNumber) || issue.pages[0],
@@ -129,7 +147,7 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
               </button>
             ))}
           </div>
-          <PageEditor page={currentPage} onChange={updatePage} />
+          <PageEditor page={currentPage} onChange={updatePage} onAutoFillPanels={autoFillPanels} />
         </div>
 
         {/* md only: pages + editor */}
@@ -162,7 +180,7 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
           )}
           <ResizablePanel id="md-editor" order={2} defaultSize={showPages ? 78 : 100} minSize={50}>
             <div className="h-full overflow-y-auto p-4 lg:p-6">
-              <PageEditor page={currentPage} onChange={updatePage} />
+              <PageEditor page={currentPage} onChange={updatePage} onAutoFillPanels={autoFillPanels} />
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -202,7 +220,7 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
             minSize={45}
           >
             <div className={`h-full overflow-y-auto p-4 lg:p-6 xl:p-8 ${focusMode ? 'mx-auto max-w-4xl' : ''}`}>
-              <PageEditor page={currentPage} onChange={updatePage} />
+              <PageEditor page={currentPage} onChange={updatePage} onAutoFillPanels={autoFillPanels} />
             </div>
           </ResizablePanel>
           {showRail && (
@@ -215,7 +233,7 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
                       Story Arc · Tension
                     </div>
                     <div className="rounded p-2 bg-background border border-border">
-                      <StoryArcGraph pages={issue.pages} currentPage={currentPageNumber} onSelect={setCurrentPageNumber} />
+                      <StoryArcGraph pages={issue.pages} currentPage={currentPageNumber} onSelect={setCurrentPageNumber} structure={issue.structure} />
                       <div className="flex justify-between mt-1 font-mono text-[9px] text-muted-foreground">
                         <span>p.1</span>
                         <span className="text-destructive">● cliffhanger</span>

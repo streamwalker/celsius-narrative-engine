@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles, Loader2 } from 'lucide-react';
 import type { Page, Panel } from '@/lib/panelcraft/types';
 import { uid } from '@/lib/panelcraft/constants';
 import { PanelCard } from './PanelCard';
@@ -10,9 +11,11 @@ import { PanelCard } from './PanelCard';
 interface Props {
   page: Page;
   onChange: (page: Page) => void;
+  onAutoFillPanels?: (pageNumber: number) => Promise<Panel[]>;
 }
 
-export function PageEditor({ page, onChange }: Props) {
+export function PageEditor({ page, onChange, onAutoFillPanels }: Props) {
+  const [autoLoading, setAutoLoading] = useState(false);
   const update = (patch: Partial<Page>) => onChange({ ...page, ...patch });
 
   const addPanel = () => {
@@ -24,6 +27,19 @@ export function PageEditor({ page, onChange }: Props) {
   const deletePanel = (panelId: string) => {
     update({ panels: page.panels.filter(p => p.id !== panelId) });
   };
+
+  const handleAutoFill = async () => {
+    if (!onAutoFillPanels) return;
+    setAutoLoading(true);
+    try {
+      const panels = await onAutoFillPanels(page.number);
+      if (panels.length > 0) update({ panels: [...page.panels, ...panels] });
+    } finally {
+      setAutoLoading(false);
+    }
+  };
+
+
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -67,9 +83,24 @@ export function PageEditor({ page, onChange }: Props) {
         ))}
       </div>
 
-      <Button variant="outline" onClick={addPanel} className="mt-4 font-mono text-xs tracking-widest border-dashed text-accent border-accent/40">
-        <Plus className="h-3.5 w-3.5 mr-1" /> ADD PANEL
-      </Button>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Button variant="outline" onClick={addPanel} className="font-mono text-xs tracking-widest border-dashed text-accent border-accent/40">
+          <Plus className="h-3.5 w-3.5 mr-1" /> ADD PANEL
+        </Button>
+        {onAutoFillPanels && (
+          <Button
+            variant="outline"
+            onClick={handleAutoFill}
+            disabled={autoLoading}
+            className="font-mono text-xs tracking-widest border-dashed"
+            title="Generate 4-6 panels from this page's summary using AI"
+          >
+            {autoLoading ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+            {page.panels.length === 0 ? 'AUTO-FILL PANELS' : 'ADD AI PANELS'}
+          </Button>
+        )}
+      </div>
+
     </div>
   );
 }
