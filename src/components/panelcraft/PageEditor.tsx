@@ -82,9 +82,24 @@ export function PageEditor({ page, onChange, onAutoFillPanels }: Props) {
         ))}
       </div>
 
-      <Button variant="outline" onClick={addPanel} className="mt-4 font-mono text-xs tracking-widest border-dashed text-accent border-accent/40">
-        <Plus className="h-3.5 w-3.5 mr-1" /> ADD PANEL
-      </Button>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Button variant="outline" onClick={addPanel} className="font-mono text-xs tracking-widest border-dashed text-accent border-accent/40">
+          <Plus className="h-3.5 w-3.5 mr-1" /> ADD PANEL
+        </Button>
+        {onAutoFillPanels && (
+          <Button
+            variant="outline"
+            onClick={handleAutoFill}
+            disabled={autoLoading}
+            className="font-mono text-xs tracking-widest border-dashed"
+            title="Generate 4-6 panels from this page's summary using AI"
+          >
+            {autoLoading ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+            {page.panels.length === 0 ? 'AUTO-FILL PANELS' : 'ADD AI PANELS'}
+          </Button>
+        )}
+      </div>
+
     </div>
   );
 }
