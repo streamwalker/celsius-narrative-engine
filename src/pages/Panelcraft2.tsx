@@ -61,11 +61,18 @@ export default function Panelcraft2() {
       setView('editor');
       toast.success(`Generated ${result.pages.length} pages`);
     } catch (err) {
-      setGenError(err instanceof Error ? err.message : 'Unknown error.');
+      const code = (err as any)?.code;
+      const message = err instanceof Error ? err.message : 'Unknown error.';
+      if (code === 'invalid_model_json') {
+        toast.warning('The AI returned an unreadable response. Please try again — tweaking the treatment slightly often helps.');
+      } else {
+        setGenError(message);
+      }
     } finally {
       setIsGenerating(false);
     }
   }, []);
+
 
   const handleLoadExample = useCallback(() => {
     const ex = makeIssue2();
