@@ -14,11 +14,14 @@ export interface GeneratedIssue extends PanelcraftIssue {
 
 export class GenerateError extends Error {
   code: 'credits_exhausted' | 'rate_limited' | 'invalid_model_json' | 'unknown';
-  constructor(message: string, code: GenerateError['code'] = 'unknown') {
+  snippet?: string;
+  constructor(message: string, code: GenerateError['code'] = 'unknown', snippet?: string) {
     super(message);
     this.code = code;
+    this.snippet = snippet;
   }
 }
+
 
 
 async function attemptGenerate(input: GenerateInput): Promise<GeneratedIssue> {
@@ -64,7 +67,7 @@ async function attemptGenerate(input: GenerateInput): Promise<GeneratedIssue> {
       raw === 'credits_exhausted' || raw === 'rate_limited' || raw === 'invalid_model_json'
         ? raw
         : 'unknown';
-    throw new GenerateError((data as any)?.error || 'Generation failed.', code);
+    throw new GenerateError((data as any)?.error || 'Generation failed.', code, (data as any)?.snippet);
   }
 
   return data as GeneratedIssue;

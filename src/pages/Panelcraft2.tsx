@@ -64,10 +64,15 @@ export default function Panelcraft2() {
       const code = (err as any)?.code;
       const message = err instanceof Error ? err.message : 'Unknown error.';
       if (code === 'invalid_model_json') {
-        toast.warning('The AI returned an unreadable response. Please try again — tweaking the treatment slightly often helps.');
+        const snippet = (err as any)?.snippet as string | undefined;
+        const desc = snippet
+          ? `Model returned: "${snippet.slice(0, 300)}${snippet.length > 300 ? '…' : ''}"`
+          : 'Try tweaking the treatment slightly and re-running.';
+        toast.warning('The AI returned an unreadable response.', { description: desc });
       } else {
         setGenError(message);
       }
+
     } finally {
       setIsGenerating(false);
     }

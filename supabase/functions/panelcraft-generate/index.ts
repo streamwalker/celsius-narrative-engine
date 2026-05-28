@@ -131,6 +131,8 @@ serve(async (req) => {
     const data = await response.json();
     let text: string = data.choices?.[0]?.message?.content ?? "";
 
+    const snippet = (text ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
+
     let parsed: any;
     try {
       parsed = extractJson(text);
@@ -139,12 +141,14 @@ serve(async (req) => {
       return jsonResponse({
         code: "invalid_model_json",
         error: e instanceof Error ? e.message : "The model returned invalid JSON. Please try again.",
+        snippet,
       });
     }
 
     if (!parsed || !Array.isArray(parsed.pages) || parsed.pages.length === 0) {
-      return jsonResponse({ code: "invalid_model_json", error: "Response missing pages array. Please try again." });
+      return jsonResponse({ code: "invalid_model_json", error: "Response missing pages array. Please try again.", snippet });
     }
+
 
     const pages = parsed.pages.map((p: any, i: number) => ({
       number: typeof p.number === "number" ? p.number : i + 1,
