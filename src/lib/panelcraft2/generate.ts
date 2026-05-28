@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { PanelcraftIssue } from '@/lib/panelcraft/types';
+import type { Page, Panel, PanelcraftIssue, PanelTransition, ShotType } from '@/lib/panelcraft/types';
+import { uid } from '@/lib/panelcraft/constants';
+
 
 export interface GenerateInput {
   title: string;
