@@ -1,13 +1,15 @@
-import type { Page } from '@/lib/panelcraft/types';
+import type { Page, IssueStructure } from '@/lib/panelcraft/types';
 import { tensionForPage } from '@/lib/panelcraft/checks';
 
 interface Props {
   pages: Page[];
   currentPage: number;
   onSelect: (n: number) => void;
+  structure?: IssueStructure;
 }
 
-export function StoryArcGraph({ pages, currentPage, onSelect }: Props) {
+export function StoryArcGraph({ pages, currentPage, onSelect, structure }: Props) {
+
   const width = 280;
   const height = 100;
   const padX = 8;
