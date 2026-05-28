@@ -60,8 +60,13 @@ export async function generateBreakdown(input: GenerateInput): Promise<Generated
     throw new GenerateError(bodyMsg || error.message || 'Generation failed.');
   }
   if (!data || (data as any).error) {
-    const code = (data as any)?.code === 'credits_exhausted' ? 'credits_exhausted' : 'unknown';
+    const raw = (data as any)?.code;
+    const code: GenerateError['code'] =
+      raw === 'credits_exhausted' || raw === 'rate_limited' || raw === 'invalid_model_json'
+        ? raw
+        : 'unknown';
     throw new GenerateError((data as any)?.error || 'Generation failed.', code);
   }
+
   return data as GeneratedIssue;
 }
