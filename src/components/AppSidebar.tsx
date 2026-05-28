@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   FileText, Library, Users, UserPlus, Rocket, Feather, Film, Sparkles,
-  BookOpen, Home, Scale, Wand2, LayoutGrid,
+  BookOpen, Home, Scale, Wand2, LayoutGrid, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,7 +11,7 @@ type Status = 'live' | 'phase' | undefined;
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: LucideIcon;
   status?: Status;
 }
 
