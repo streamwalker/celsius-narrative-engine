@@ -18,12 +18,24 @@ export interface PanelLine {
   text: string;
 }
 
+export type ShotType =
+  | 'ESTABLISHING' | 'WIDE' | 'MEDIUM' | 'CLOSE'
+  | 'ECU' | 'OTS' | 'POV' | 'INSERT' | 'SPLASH';
+
+export type PanelTransition =
+  | 'NONE'
+  | 'MOMENT_TO_MOMENT' | 'ACTION_TO_ACTION' | 'SUBJECT_TO_SUBJECT'
+  | 'SCENE_TO_SCENE' | 'ASPECT_TO_ASPECT' | 'NON_SEQUITUR';
+
 export interface Panel {
   id: string;
   function: PanelFunctionId;
   description: string;
   lines: PanelLine[];
+  shotType?: ShotType;
+  transitionFromPrev?: PanelTransition;
 }
+
 
 export type PageSide = 'L' | 'R';
 
