@@ -147,7 +147,7 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
               </button>
             ))}
           </div>
-          <PageEditor page={currentPage} onChange={updatePage} />
+          <PageEditor page={currentPage} onChange={updatePage} onAutoFillPanels={autoFillPanels} />
         </div>
 
         {/* md only: pages + editor */}
@@ -180,7 +180,7 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
           )}
           <ResizablePanel id="md-editor" order={2} defaultSize={showPages ? 78 : 100} minSize={50}>
             <div className="h-full overflow-y-auto p-4 lg:p-6">
-              <PageEditor page={currentPage} onChange={updatePage} />
+              <PageEditor page={currentPage} onChange={updatePage} onAutoFillPanels={autoFillPanels} />
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
@@ -220,7 +220,7 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
             minSize={45}
           >
             <div className={`h-full overflow-y-auto p-4 lg:p-6 xl:p-8 ${focusMode ? 'mx-auto max-w-4xl' : ''}`}>
-              <PageEditor page={currentPage} onChange={updatePage} />
+              <PageEditor page={currentPage} onChange={updatePage} onAutoFillPanels={autoFillPanels} />
             </div>
           </ResizablePanel>
           {showRail && (
