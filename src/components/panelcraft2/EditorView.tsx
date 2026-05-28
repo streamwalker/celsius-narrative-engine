@@ -60,6 +60,22 @@ export function EditorView({ issue, onChange, onNewIssue, saveStatus }: Props) {
     onChange({ ...issue, pages: issue.pages.map(p => p.number === updated.number ? updated : p) });
   }, [issue, onChange]);
 
+  const autoFillPanels = useCallback(async (pageNumber: number) => {
+    try {
+      return await generatePanelsForPage(issue, pageNumber);
+    } catch (err) {
+      if (err instanceof GenerateError && err.code === 'invalid_model_json') {
+        toast.warning('The AI returned an unreadable panel breakdown.', {
+          description: err.snippet ? `Model returned: "${err.snippet}"` : 'Please try again.',
+        });
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Panel generation failed.');
+      }
+      return [];
+    }
+  }, [issue]);
+
+
   const currentPage = useMemo(
     () => issue.pages.find(p => p.number === currentPageNumber) || issue.pages[0],
     [issue, currentPageNumber],
