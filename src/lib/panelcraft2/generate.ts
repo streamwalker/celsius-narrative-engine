@@ -13,12 +13,13 @@ export interface GeneratedIssue extends PanelcraftIssue {
 }
 
 export class GenerateError extends Error {
-  code: 'credits_exhausted' | 'rate_limited' | 'unknown';
+  code: 'credits_exhausted' | 'rate_limited' | 'invalid_model_json' | 'unknown';
   constructor(message: string, code: GenerateError['code'] = 'unknown') {
     super(message);
     this.code = code;
   }
 }
+
 
 export async function generateBreakdown(input: GenerateInput): Promise<GeneratedIssue> {
   const { data, error } = await supabase.functions.invoke('panelcraft-generate', {
