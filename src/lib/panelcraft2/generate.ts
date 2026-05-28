@@ -13,12 +13,13 @@ export interface GeneratedIssue extends PanelcraftIssue {
 }
 
 export class GenerateError extends Error {
-  code: 'credits_exhausted' | 'rate_limited' | 'unknown';
+  code: 'credits_exhausted' | 'rate_limited' | 'invalid_model_json' | 'unknown';
   constructor(message: string, code: GenerateError['code'] = 'unknown') {
     super(message);
     this.code = code;
   }
 }
+
 
 export async function generateBreakdown(input: GenerateInput): Promise<GeneratedIssue> {
   const { data, error } = await supabase.functions.invoke('panelcraft-generate', {
@@ -59,8 +60,13 @@ export async function generateBreakdown(input: GenerateInput): Promise<Generated
     throw new GenerateError(bodyMsg || error.message || 'Generation failed.');
   }
   if (!data || (data as any).error) {
-    const code = (data as any)?.code === 'credits_exhausted' ? 'credits_exhausted' : 'unknown';
+    const raw = (data as any)?.code;
+    const code: GenerateError['code'] =
+      raw === 'credits_exhausted' || raw === 'rate_limited' || raw === 'invalid_model_json'
+        ? raw
+        : 'unknown';
     throw new GenerateError((data as any)?.error || 'Generation failed.', code);
   }
+
   return data as GeneratedIssue;
 }
