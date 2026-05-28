@@ -173,12 +173,31 @@ serve(async (req) => {
       panels: [],
     }));
 
+    const total = pages.length;
+    const clampPage = (n: unknown, fallback: number): number => {
+      const v = typeof n === "number" && Number.isFinite(n) ? Math.round(n) : fallback;
+      return Math.min(Math.max(1, v), total);
+    };
+    const rawStruct = parsed.structure ?? {};
+    const rawBreaks = Array.isArray(rawStruct.actBreaks) ? rawStruct.actBreaks : [];
+    const a1 = clampPage(rawBreaks[0], Math.max(1, Math.round(total * 0.25)));
+    const mid = clampPage(rawStruct.midpoint, Math.max(a1 + 1, Math.round(total * 0.5)));
+    const a2 = clampPage(rawBreaks[1], Math.max(mid + 1, Math.round(total * 0.75)));
+    const climax = clampPage(rawStruct.climaxPage, Math.max(a2 + 1, total - 1));
+    const structure = {
+      actBreaks: [Math.min(a1, mid - 1), Math.max(a2, mid + 1)] as [number, number],
+      midpoint: mid,
+      climaxPage: Math.max(climax, a2),
+    };
+
     return jsonResponse({
       title: String(parsed.title || title || "Untitled Issue"),
       theme: String(parsed.theme || theme || ""),
       treatment,
+      structure,
       pages,
     });
+
   } catch (e) {
     console.error("panelcraft-generate error:", e);
     return jsonResponse({ code: "server_error", error: e instanceof Error ? e.message : "Unknown error" });
