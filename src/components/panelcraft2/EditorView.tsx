@@ -22,10 +22,12 @@ import { CraftPanel } from '@/components/panelcraft/CraftPanel';
 import { ExportDialog } from '@/components/panelcraft/ExportDialog';
 import { checksForPage, tensionForPage } from '@/lib/panelcraft/checks';
 import type { Page } from '@/lib/panelcraft/types';
-import type { GeneratedIssue } from '@/lib/panelcraft2/generate';
+import { type GeneratedIssue, generatePanelsForPage, GenerateError } from '@/lib/panelcraft2/generate';
+import { toast } from 'sonner';
 import { PageListItemV2 } from './PageListItemV2';
 import { FunctionLegend } from './FunctionLegend';
 import { SourceDialog } from './SourceDialog';
+
 
 interface Props {
   issue: GeneratedIssue;
