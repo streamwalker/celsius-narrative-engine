@@ -105,7 +105,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     let subject: string;
     let html: string;
-    const { inviteDetails } = await req.json().catch(() => ({})) as NotificationRequest;
+
+
 
     if (type === "test") {
       subject = "🎨 Comic Generator - Test Notification";
