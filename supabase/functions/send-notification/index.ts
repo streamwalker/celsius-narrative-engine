@@ -51,28 +51,49 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { type, jobId, userId, email, jobDetails }: NotificationRequest = await req.json();
-    console.log("Notification request:", { type, jobId, userId });
-
+    // Authenticate caller — verify_jwt=true gates at the gateway, but
+    // resolve the user here so we can constrain who we send to.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authedClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userErr } = await authedClient.auth.getUser();
+    if (userErr || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    const body: NotificationRequest = await req.json();
+    const { type, jobId, jobDetails, inviteDetails } = body;
+    // Always use the authenticated user's id — never trust a caller-supplied userId.
+    const userId = user.id;
+    console.log("Notification request:", { type, jobId, userId });
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    let recipientEmail = email;
+    // Resolve the recipient from the authenticated user only.
+    let recipientEmail: string | undefined;
+    const { data: prefs } = await supabase
+      .from("user_preferences")
+      .select("notification_email, email_notifications")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (!recipientEmail && userId) {
-      const { data: prefs } = await supabase
-        .from("user_preferences")
-        .select("notification_email, email_notifications")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (prefs?.notification_email) {
-        recipientEmail = prefs.notification_email;
-      } else {
-        const { data: authUser } = await supabase.auth.admin.getUserById(userId);
-        recipientEmail = authUser?.user?.email;
-      }
+    if (prefs?.notification_email) {
+      recipientEmail = prefs.notification_email;
+    } else {
+      recipientEmail = user.email ?? undefined;
     }
 
     if (!recipientEmail) {
