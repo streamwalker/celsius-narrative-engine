@@ -41,6 +41,7 @@ import AcceptableUse from "./pages/legal/AcceptableUse";
 import Patents from "./pages/legal/Patents";
 import AdminEmailLogs from "./pages/AdminEmailLogs";
 import Unsubscribe from "./pages/Unsubscribe";
+import SecuritySummary from "./pages/SecuritySummary";
 
 const queryClient = new QueryClient();
 
