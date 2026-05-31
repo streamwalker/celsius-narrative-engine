@@ -85,6 +85,7 @@ const App = () => (
                 <Route path="/acceptable-use" element={<AcceptableUse />} />
                 <Route path="/patents" element={<Patents />} />
                 <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
+                <Route path="/admin/security" element={<SecuritySummary />} />
                 <Route path="/unsubscribe" element={<Unsubscribe />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
