@@ -3,7 +3,6 @@ name: Story Architect review
 on:
   push:
     branches: [feat/story-world-architect]
-    paths: ['.github/workflows/architect-review.yml', 'src/App.tsx']
   pull_request:
     branches: [main]
 
@@ -28,16 +27,9 @@ jobs:
           bun-version: latest
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
-      - name: Package isolated review workspace
-        if: github.event_name == 'push'
-        run: tar --exclude=./.git --exclude=./.env --exclude='./.env.*' --exclude=./dist --exclude='*.log' -czf /tmp/celsius-review-workspace.tgz .
-      - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push'
-        with:
-          name: celsius-review-workspace
-          path: /tmp/celsius-review-workspace.tgz
-          retention-days: 1
-      - name: Run unit tests
+      - name: Type check application
+        run: bunx tsc --noEmit -p tsconfig.app.json
+      - name: Run all unit and integration tests
         run: bunx vitest run
       - name: Build production assets
         run: bun run build

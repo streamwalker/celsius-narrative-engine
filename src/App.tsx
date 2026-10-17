@@ -18,6 +18,8 @@ import {
   GlossaryDrawerProvider,
   AIExplainerWidget,
 } from "./components/knowledge";
+import { lazy, Suspense } from "react";
+const StoryArchitect = lazy(() => import("./features/story-architect/StoryArchitect"));
 import NarrativeEngine from "./pages/NarrativeEngine";
 import NarrativeEngineGuide from "./pages/NarrativeEngineGuide";
 import Panelcraft from "./pages/Panelcraft";
@@ -63,6 +65,7 @@ const App = () => (
                 <Route path="/library" element={<Library />} />
                 <Route path="/knowledge" element={<Knowledge />} />
                 <Route path="/glossary" element={<Glossary />} />
+                <Route path="/story-architect" element={<Suspense fallback={<p className="p-8" role="status">Loading Story Architect…</p>}><StoryArchitect /></Suspense>} />
                 <Route path="/narrative-engine" element={<NarrativeEngine />} />
                 <Route path="/narrative-engine/guide" element={<NarrativeEngineGuide />} />
                 <Route path="/narrative-engine/panelcraft" element={<Panelcraft />} />
