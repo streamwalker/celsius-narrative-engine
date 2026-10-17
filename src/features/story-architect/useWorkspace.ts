@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { makeWorkspace, STORAGE_KEY, workspaceSchema, type Project, type Workspace } from './model';
+import { reconcileCanonApproval } from './canon';
 
 export function readWorkspace(storage: Pick<Storage, 'getItem'>) {
   let raw: string | null = null;
@@ -68,8 +69,12 @@ export function useWorkspace() {
     setWorkspace(mutate);
   }, []);
   const updateProject = useCallback((project: Project) => {
-    const next = { ...project, updatedAt: new Date().toISOString() };
-    change(w => ({ ...w, projects: w.projects.map(p => p.id === next.id ? next : p) }));
+    change(w => {
+      const previous = w.projects.find(p => p.id === project.id);
+      if (!previous) return w;
+      const next = { ...reconcileCanonApproval(previous, project), updatedAt: new Date().toISOString() };
+      return { ...w, projects: w.projects.map(p => p.id === next.id ? next : p) };
+    });
   }, [change]);
   const addProject = useCallback((project: Project) => {
     change(w => w.projects.length >= 30 ? w : ({ ...w, activeId: project.id, projects: [...w.projects, project] }));

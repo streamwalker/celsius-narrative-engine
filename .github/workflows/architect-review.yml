@@ -33,3 +33,10 @@ jobs:
         run: bunx vitest run
       - name: Build production assets
         run: bun run build
+      - name: Package source for review
+        run: tar --exclude=./.git --exclude=./.env --exclude='./.env.*' --exclude=./node_modules --exclude=./dist -czf /tmp/celsius-review-source.tgz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: celsius-review-source
+          path: /tmp/celsius-review-source.tgz
+          retention-days: 3
