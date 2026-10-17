@@ -1,0 +1,38 @@
+name: Story Architect review
+
+on:
+  push:
+    branches: [feat/story-world-architect]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Package isolated review workspace
+        if: github.event_name == 'push'
+        run: tar --exclude=.git --exclude=.env --exclude='.env.*' --exclude=dist --exclude='*.log' -czf /tmp/celsius-review-workspace.tgz .
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: celsius-review-workspace
+          path: /tmp/celsius-review-workspace.tgz
+          retention-days: 1
+      - name: Run unit tests
+        run: bunx vitest run
+      - name: Build production assets
+        run: bun run build
