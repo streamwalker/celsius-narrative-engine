@@ -19,6 +19,7 @@ import {
   AIExplainerWidget,
 } from "./components/knowledge";
 import NarrativeEngine from "./pages/NarrativeEngine";
+import StoryArchitect from "./pages/StoryArchitect";
 import NarrativeEngineGuide from "./pages/NarrativeEngineGuide";
 import Panelcraft from "./pages/Panelcraft";
 import Panelcraft2 from "./pages/Panelcraft2";
@@ -64,6 +65,7 @@ const App = () => (
                 <Route path="/knowledge" element={<Knowledge />} />
                 <Route path="/glossary" element={<Glossary />} />
                 <Route path="/narrative-engine" element={<NarrativeEngine />} />
+                <Route path="/story-architect" element={<StoryArchitect />} />
                 <Route path="/narrative-engine/guide" element={<NarrativeEngineGuide />} />
                 <Route path="/narrative-engine/panelcraft" element={<Panelcraft />} />
                 <Route path="/narrative-engine/panelcraft-2" element={<Panelcraft2 />} />
