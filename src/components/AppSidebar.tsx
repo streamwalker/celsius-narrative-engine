@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   FileText, Library, Users, UserPlus, Rocket, Feather, Film, Sparkles,
-  BookOpen, Home, Scale, Wand2, LayoutGrid, type LucideIcon,
+  BookOpen, Home, Scale, Wand2, LayoutGrid, Compass, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,6 +25,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/script-formatter", label: "Script Formatter", icon: FileText, status: "live" },
       { href: "/library", label: "Library", icon: Library, status: "live" },
       { href: "/narrative-engine", label: "Narrative Engine", icon: Sparkles, status: "phase" },
+      { href: "/story-architect", label: "Story Architect", icon: Compass, status: "phase" },
       { href: "/narrative-engine/panelcraft", label: "Panelcraft", icon: LayoutGrid, status: "phase" },
       { href: "/narrative-engine/panelcraft-2", label: "Panelcraft 2", icon: LayoutGrid, status: "phase" },
       { href: "/letter-page", label: "Letter a Page", icon: Wand2, status: "live" },
