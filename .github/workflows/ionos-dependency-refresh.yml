@@ -20,13 +20,17 @@ jobs:
         with:
           node-version: '22'
       - uses: oven-sh/setup-bun@v2
-      - name: Apply reviewed versions and router test compatibility
+      - name: Apply reviewed versions and build-time dependency classification
         run: |
           node --input-type=module <<'JS'
           import fs from 'node:fs';
           const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           p.dependencies['react-router-dom'] = '7.18.4';
           p.overrides = { ...p.overrides, lodash: '4.18.1', '@xmldom/xmldom': '0.8.15' };
+          if (p.dependencies['tailwindcss-animate']) {
+            p.devDependencies['tailwindcss-animate'] = p.dependencies['tailwindcss-animate'];
+            delete p.dependencies['tailwindcss-animate'];
+          }
           fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
           const test = 'src/features/story-architect/story-architect.test.tsx';
           fs.writeFileSync(test, fs.readFileSync(test, 'utf8').replace('<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>', '<MemoryRouter>'));
@@ -46,13 +50,14 @@ jobs:
         run: |
           git add package.json package-lock.json bun.lock src/features/story-architect/story-architect.test.tsx
           if git diff --cached --quiet; then exit 0; fi
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: update browser router and vulnerable XML/lodash dependencies'
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: update browser dependencies and separate build-only Tailwind plugin'
           git push origin HEAD:feat/story-world-architect
-      - name: Package exact committed release
+      - name: Package exact committed release and both audits
         run: |
           node scripts/ionos/release.mjs
           node scripts/ionos/check-backend.mjs
           npm audit --omit=dev --json > ionos-release/dependency-audit.json || true
+          npm audit --json > ionos-release/full-development-audit.json || true
           node scripts/ionos/check-audit.mjs > ionos-release/audit-review.json
       - uses: actions/upload-artifact@v4
         with:
