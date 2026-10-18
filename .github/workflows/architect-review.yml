@@ -43,6 +43,8 @@ jobs:
         shell: bash
         run: |
           npm audit --omit=dev --json > ionos-release/dependency-audit.json || true
+      - name: Gate production dependency findings
+        run: node scripts/ionos/check-audit.mjs
       - name: Upload deployable files for review (no hosting deployment)
         uses: actions/upload-artifact@v4
         with:

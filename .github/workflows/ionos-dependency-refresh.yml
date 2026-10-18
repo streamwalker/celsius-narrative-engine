@@ -1,0 +1,59 @@
+name: IONOS dependency remediation
+on:
+  push:
+    branches: [feat/story-world-architect]
+    paths: [.github/workflows/ionos-dependency-refresh.yml]
+permissions:
+  contents: write
+concurrency:
+  group: ionos-dependency-remediation
+  cancel-in-progress: false
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/story-world-architect
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+      - name: Apply reviewed versions (no forced audit downgrade)
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          p.dependencies['react-router-dom'] = '7.18.4';
+          p.overrides = { ...p.overrides, lodash: '4.18.1', '@xmldom/xmldom': '0.8.15' };
+          fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
+          JS
+          bun install --ignore-scripts
+          npm install --package-lock-only --ignore-scripts
+          bun install --frozen-lockfile
+      - name: Verify application and release guards
+        run: |
+          bunx tsc --noEmit -p tsconfig.app.json
+          bunx vitest run
+          node --test scripts/ionos/release.test.mjs
+          node scripts/ionos/release.mjs
+          npm audit --omit=dev --json > ionos-release/dependency-audit.json || true
+          node scripts/ionos/check-audit.mjs
+      - name: Commit only reviewed dependency files to the feature branch
+        run: |
+          git add package.json package-lock.json bun.lock
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: update browser router and vulnerable XML/lodash dependencies'
+          git push origin HEAD:feat/story-world-architect
+      - name: Package exact committed release
+        run: |
+          node scripts/ionos/release.mjs
+          node scripts/ionos/check-backend.mjs
+          npm audit --omit=dev --json > ionos-release/dependency-audit.json || true
+          node scripts/ionos/check-audit.mjs > ionos-release/audit-review.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: celsius-ionos-remediated-kit
+          path: ionos-release/
+          retention-days: 7
