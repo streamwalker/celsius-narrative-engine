@@ -7,7 +7,7 @@ import { readWorkspace, writeWorkspace } from './useWorkspace';
 
 beforeEach(() => window.localStorage.clear());
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
-const renderStudio = () => render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><StoryArchitect /></MemoryRouter>);
+const renderStudio = () => render(<MemoryRouter><StoryArchitect /></MemoryRouter>);
 const disk = () => workspaceSchema.parse(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!));
 
 describe('Story Architect data and import safety', () => {
