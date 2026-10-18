@@ -1,0 +1,78 @@
+name: Story Architect review
+
+on:
+  push:
+    branches: [feat/story-world-architect]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: architect-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Type check application
+        run: bunx tsc --noEmit -p tsconfig.app.json
+      - name: Run all unit and integration tests
+        run: bunx vitest run
+      - name: Test IONOS release guards
+        run: node --test scripts/ionos/release.test.mjs
+      - name: Build and package full IONOS frontend
+        env:
+          IONOS_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node scripts/ionos/release.mjs
+          cp deployment/ionos/SECURITY-REVIEW.md ionos-release/SECURITY-REVIEW.md
+      - name: Read-only auth service reachability
+        run: node scripts/ionos/check-backend.mjs
+      - name: Record both production and development dependency audits
+        run: |
+          npm audit --omit=dev --json > ionos-release/dependency-audit.json || true
+          npm audit --json > ionos-release/full-development-audit.json || true
+      - name: Gate production dependency findings
+        run: node scripts/ionos/check-audit.mjs > ionos-release/audit-review.json
+      - name: Install isolated browser test tools
+        run: |
+          python3 -m venv /tmp/celsius-browser-check
+          /tmp/celsius-browser-check/bin/pip install playwright==1.56.0
+          /tmp/celsius-browser-check/bin/python -m playwright install --with-deps chromium
+      - name: Test full frontend in a real browser profile
+        run: /tmp/celsius-browser-check/bin/python scripts/ionos/browser-smoke.py
+      - name: Upload deployable files for review (no hosting deployment)
+        uses: actions/upload-artifact@v4
+        with:
+          name: celsius-ionos-deployment-kit
+          path: ionos-release/
+          retention-days: 7
+      - name: Package source for review
+        run: tar --exclude=./.git --exclude=./.env --exclude='./.env.*' --exclude=./node_modules --exclude=./dist --exclude=./ionos-release -czf /tmp/celsius-review-source.tgz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: celsius-review-source
+          path: /tmp/celsius-review-source.tgz
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ionos-failed-review-diagnostics
+          path: |
+            ionos-release/browser-checks/
+            ionos-release/dependency-audit.json
+            dist/bundle-policy.json
+          retention-days: 1

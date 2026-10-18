@@ -1,0 +1,61 @@
+# Celsius: IONOS Linux Web Hosting / Apache 2.4.
+# This directory must be the document root of a domain or subdomain.
+# Activate the domain's SSL certificate BEFORE connecting this release.
+Options -Indexes -MultiViews
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+
+RewriteEngine On
+RewriteBase /
+
+# Do not serve accidental source/config/backup uploads or dotfiles.
+RewriteRule (^|/)\.(?!well-known(?:/|$)) - [F,L]
+RewriteRule ^(?:src|node_modules|supabase|scripts|deployment)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:package(?:-lock)?\.json|bun\.lockb?|README(?:\..*)?|tsconfig.*|vite\.config\..*)$ - [F,L,NC]
+RewriteRule \.(?:map|sql|bak|backup|log|zip|tgz|tar|pem|key)$ - [F,L,NC]
+
+# Deliberately no proxy-header trust and no long-lived HSTS preload.
+RewriteCond %{HTTPS} !=on
+RewriteCond %{SERVER_PORT} !=443
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L,NE]
+
+# Never expose the asset directory itself.
+RewriteRule ^assets/?$ - [F,L]
+
+# Real static files are served normally.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Missing assets/API paths must be real 404s, never index.html as JavaScript.
+RewriteRule ^(?:assets|api|\.well-known)(?:/|$) - [R=404,L]
+RewriteRule \.[A-Za-z0-9]{1,12}$ - [R=404,L]
+
+# Only page navigation falls back to the React router.
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteRule ^ index.html [L]
+RewriteRule ^ - [R=404,L]
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  # Minimal, compatible policy. Not a comprehensive script-source CSP audit.
+  Header always set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+  <FilesMatch "\.(?:html|json|txt)$">
+    Header set Cache-Control "no-cache, max-age=0, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "-[A-Za-z0-9_-]{8}\.(?:js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType text/javascript .js .mjs
+  AddType text/css .css
+  AddType application/json .json
+  AddType image/svg+xml .svg
+</IfModule>
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>

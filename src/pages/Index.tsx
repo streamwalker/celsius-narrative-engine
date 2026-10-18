@@ -1,3 +1,4 @@
+import streamwalkersLogo from '@/assets/streamwalkers-logo.png';
 import { Link } from 'react-router-dom';
 import { FileText, Library, Users, Rocket, Film, Sparkles } from 'lucide-react';
 import { HudConsole } from '@/components/jarvis/HudConsole';
@@ -74,6 +75,11 @@ export default function Index() {
             {TOOLS.map(t => <ToolCard key={t.href} {...t} />)}
           </div>
         </section>
+
+        <div className="mt-10 flex items-center gap-4 border-t border-[hsl(var(--primary)/0.18)] pt-6">
+          <img src={streamwalkersLogo} alt="Streamwalkers" width={144} height={81} className="h-auto w-36 rounded-md" loading="lazy" />
+          <p className="font-mono text-xs text-muted-foreground">Celsius is a Streamwalkers creative workspace.</p>
+        </div>
 
         {/* Footer strip */}
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-[hsl(var(--primary)/0.18)] py-4 text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--muted-foreground-2))]">

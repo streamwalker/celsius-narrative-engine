@@ -1,3 +1,4 @@
+import streamwalkersMark from '@/assets/streamwalkers-mark.png';
 import { Link, useLocation } from "react-router-dom";
 import {
   FileText, Library, Users, UserPlus, Rocket, Feather, Film, Sparkles,
@@ -24,6 +25,7 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/", label: "Home", icon: Home, status: "live" },
       { href: "/script-formatter", label: "Script Formatter", icon: FileText, status: "live" },
       { href: "/library", label: "Library", icon: Library, status: "live" },
+      { href: "/story-architect", label: "Story Architect", icon: BookOpen },
       { href: "/narrative-engine", label: "Narrative Engine", icon: Sparkles, status: "phase" },
       { href: "/narrative-engine/panelcraft", label: "Panelcraft", icon: LayoutGrid, status: "phase" },
       { href: "/narrative-engine/panelcraft-2", label: "Panelcraft 2", icon: LayoutGrid, status: "phase" },
@@ -142,6 +144,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Footer */}
       <div className="border-t border-[hsl(var(--primary)/0.18)] p-3">
+        <div className="mb-2 flex items-center gap-2"><img src={streamwalkersMark} alt="Streamwalkers" width={48} height={24} className="h-6 w-12 object-contain" /><span className="text-[10px] text-muted-foreground">A Streamwalkers app</span></div>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--muted-foreground-2))]">
           Celsius v1.9 · <span className="text-primary">●</span>
         </p>

@@ -1,3 +1,4 @@
+import streamwalkersMark from '@/assets/streamwalkers-mark.png';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -7,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable';
+import { signInWithSocialProvider } from '@/lib/social-auth';
 import { toast } from 'sonner';
 import { Loader2, AlertCircle, CheckCircle2, MailWarning } from 'lucide-react';
 
@@ -33,6 +34,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [socialError, setSocialError] = useState<string | null>(null);
   const [eulaAccepted, setEulaAccepted] = useState(false);
   const [confirmation, setConfirmation] = useState<ConfirmationStatus | null>(null);
 
@@ -120,6 +122,22 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     }
   };
 
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+    setIsLoading(true);
+    setSocialError(null);
+    try {
+      const result = await signInWithSocialProvider(provider);
+      if (result.error) throw result.error;
+      if (result.redirected) return;
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      setSocialError(error instanceof Error ? error.message : 'Sign-in could not be started. Please try again or use email.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleMagicLink = async () => {
     if (!email) {
       toast.error('Enter your email above first.');
@@ -144,6 +162,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
+          <img src={streamwalkersMark} alt="Streamwalkers" width={56} height={28} className="h-7 w-14 object-contain rounded bg-black" />
           <DialogTitle className="font-display tracking-wider text-2xl">
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </DialogTitle>
@@ -210,6 +229,21 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               </div>
             </div>
           </Alert>
+        )}
+
+        {isLogin && (
+          <div className="space-y-3">
+            <Button type="button" variant="outline" className="w-full" disabled={isLoading}
+              onClick={() => handleSocialLogin('google')}>
+              Sign in with Google
+            </Button>
+            <Button type="button" variant="outline" className="w-full" disabled={isLoading}
+              onClick={() => handleSocialLogin('apple')}>
+              Sign in with Apple
+            </Button>
+            {socialError && <p role="alert" className="text-sm text-destructive">{socialError}</p>}
+            <p className="text-center text-xs text-muted-foreground">Or sign in with email</p>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
