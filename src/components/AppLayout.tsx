@@ -1,3 +1,4 @@
+import streamwalkersMark from '@/assets/streamwalkers-mark.png';
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </span>
             </div>
             <span className="font-display text-sm font-bold tracking-[0.14em]">CELSIUS</span>
+            <img src={streamwalkersMark} alt="Streamwalkers" width={40} height={20} className="h-5 w-10 object-contain" />
           </div>
           <Button
             variant="ghost"

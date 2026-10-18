@@ -1,3 +1,4 @@
+import streamwalkersMark from '@/assets/streamwalkers-mark.png';
 import { Link, useLocation } from "react-router-dom";
 import {
   FileText, Library, Users, UserPlus, Rocket, Feather, Film, Sparkles,
@@ -143,6 +144,7 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Footer */}
       <div className="border-t border-[hsl(var(--primary)/0.18)] p-3">
+        <div className="mb-2 flex items-center gap-2"><img src={streamwalkersMark} alt="Streamwalkers" width={48} height={24} className="h-6 w-12 object-contain" /><span className="text-[10px] text-muted-foreground">A Streamwalkers app</span></div>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--muted-foreground-2))]">
           Celsius v1.9 · <span className="text-primary">●</span>
         </p>

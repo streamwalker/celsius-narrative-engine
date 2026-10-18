@@ -1,3 +1,4 @@
+import streamwalkersMark from '@/assets/streamwalkers-mark.png';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -161,6 +162,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
+          <img src={streamwalkersMark} alt="Streamwalkers" width={56} height={28} className="h-7 w-14 object-contain rounded bg-black" />
           <DialogTitle className="font-display tracking-wider text-2xl">
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </DialogTitle>
