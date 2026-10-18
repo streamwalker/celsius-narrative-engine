@@ -31,10 +31,26 @@ jobs:
         run: bunx tsc --noEmit -p tsconfig.app.json
       - name: Run all unit and integration tests
         run: bunx vitest run
-      - name: Build production assets
-        run: bun run build
+      - name: Test IONOS release guards
+        run: node --test scripts/ionos/release.test.mjs
+      - name: Build and package full IONOS frontend
+        env:
+          IONOS_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/ionos/release.mjs
+      - name: Read-only auth service reachability
+        run: node scripts/ionos/check-backend.mjs
+      - name: Record production dependency audit
+        shell: bash
+        run: |
+          npm audit --omit=dev --json > ionos-release/dependency-audit.json || true
+      - name: Upload deployable files for review (no hosting deployment)
+        uses: actions/upload-artifact@v4
+        with:
+          name: celsius-ionos-deployment-kit
+          path: ionos-release/
+          retention-days: 7
       - name: Package source for review
-        run: tar --exclude=./.git --exclude=./.env --exclude='./.env.*' --exclude=./node_modules --exclude=./dist -czf /tmp/celsius-review-source.tgz .
+        run: tar --exclude=./.git --exclude=./.env --exclude='./.env.*' --exclude=./node_modules --exclude=./dist --exclude=./ionos-release -czf /tmp/celsius-review-source.tgz .
       - uses: actions/upload-artifact@v4
         with:
           name: celsius-review-source

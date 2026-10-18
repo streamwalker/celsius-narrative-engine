@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local configuration and IONOS release artifacts (never upload source to webspace)
+.env.local
+.env.*.local
+ionos-release/
