@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable';
+import { signInWithSocialProvider } from '@/lib/social-auth';
 import { toast } from 'sonner';
 import { Loader2, AlertCircle, CheckCircle2, MailWarning } from 'lucide-react';
 
@@ -33,6 +33,7 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [socialError, setSocialError] = useState<string | null>(null);
   const [eulaAccepted, setEulaAccepted] = useState(false);
   const [confirmation, setConfirmation] = useState<ConfirmationStatus | null>(null);
 
@@ -115,6 +116,22 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
       }
 
       toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'apple') => {
+    setIsLoading(true);
+    setSocialError(null);
+    try {
+      const result = await signInWithSocialProvider(provider);
+      if (result.error) throw result.error;
+      if (result.redirected) return;
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      setSocialError(error instanceof Error ? error.message : 'Sign-in could not be started. Please try again or use email.');
     } finally {
       setIsLoading(false);
     }
@@ -210,6 +227,21 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
               </div>
             </div>
           </Alert>
+        )}
+
+        {isLogin && (
+          <div className="space-y-3">
+            <Button type="button" variant="outline" className="w-full" disabled={isLoading}
+              onClick={() => handleSocialLogin('google')}>
+              Sign in with Google
+            </Button>
+            <Button type="button" variant="outline" className="w-full" disabled={isLoading}
+              onClick={() => handleSocialLogin('apple')}>
+              Sign in with Apple
+            </Button>
+            {socialError && <p role="alert" className="text-sm text-destructive">{socialError}</p>}
+            <p className="text-center text-xs text-muted-foreground">Or sign in with email</p>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
