@@ -1,12 +1,11 @@
-"""CI smoke checks of the full compiled frontend. No production accounts or network calls.
-Uses real browser-profile storage, not a Storage mock. Apache rules are tested separately.
-"""
+"""Full compiled frontend smoke checks, real storage, no production accounts or calls."""
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
 from urllib.parse import urlsplit
 import json
+import re
 import tempfile
 from playwright.sync_api import sync_playwright
 
@@ -34,6 +33,10 @@ try:
             c = pw.chromium.launch_persistent_context(profile, headless=True, viewport={'width': 1536, 'height': 1000})
             c.route('**/*', lambda route: route.continue_() if route.request.url.startswith(origin + '/') or route.request.url.startswith(('data:', 'blob:')) else route.abort())
             return c
+        def field(label):
+            # Match the visible label span; filled textarea text can also contribute
+            # to a wrapping label's name. This does not mutate the application.
+            return p.locator('label.sa-field').filter(has=p.locator('span').filter(has_text=re.compile('^' + re.escape(label) + '$'))).locator('input, textarea')
         c = launch()
         p = c.pages[0]
         p.on('pageerror', lambda error: report['runtimeErrors'].append(str(error)))
@@ -43,21 +46,21 @@ try:
         if consent.count():
             consent.click()
         p.get_by_role('button', name='Explore a sample').click()
-        p.get_by_label('Working title', exact=True).fill('IONOS persistence check')
-        p.get_by_label('What happens?', exact=True).fill('This edit survives a browser restart.')
+        field('Working title').fill('IONOS persistence check')
+        field('What happens?').fill('This edit survives a browser restart.')
         p.get_by_text('Saved on this device', exact=True).wait_for()
         p.reload(wait_until='domcontentloaded')
-        p.get_by_label('Working title', exact=True).wait_for()
-        assert p.get_by_label('Working title', exact=True).input_value() == 'IONOS persistence check'
+        field('Working title').wait_for()
+        assert field('Working title').input_value() == 'IONOS persistence check'
         report['checks'].append('Story edit persists after full page reload')
         c.close()
         c = launch()
         p = c.pages[0]
         p.on('pageerror', lambda error: report['runtimeErrors'].append(str(error)))
         p.goto(origin + '/story-architect', wait_until='domcontentloaded')
-        p.get_by_label('Working title', exact=True).wait_for()
-        assert p.get_by_label('Working title', exact=True).input_value() == 'IONOS persistence check'
-        assert p.get_by_label('What happens?', exact=True).input_value() == 'This edit survives a browser restart.'
+        field('Working title').wait_for()
+        assert field('Working title').input_value() == 'IONOS persistence check'
+        assert field('What happens?').input_value() == 'This edit survives a browser restart.'
         report['checks'].append('Story survives browser process close/reopen')
         with p.expect_download() as download:
             p.get_by_role('button', name='Export story', exact=True).click()
@@ -69,7 +72,7 @@ try:
         assert p.get_by_label('Current story').locator('option').count() == 3
         report['checks'].append('Real JSON download/import creates a separate project')
         p.get_by_role('button', name='World atlas').click()
-        p.get_by_label('Rule / what this makes possible or impossible', exact=True).fill('A revised rule requires renewed approval.')
+        field('Rule / what this makes possible or impossible').fill('A revised rule requires renewed approval.')
         p.get_by_role('button', name='Review desk').click()
         p.get_by_role('button', name='Story journey').click()
         report['checks'].append('World editing and Review Desk navigation')
@@ -80,7 +83,7 @@ try:
             report['checks'].append('Full app route renders: ' + route)
         p.set_viewport_size({'width': 390, 'height': 844})
         p.goto(origin + '/story-architect', wait_until='domcontentloaded')
-        p.get_by_label('Working title', exact=True).wait_for()
+        field('Working title').wait_for()
         assert p.evaluate('document.documentElement.scrollWidth <= innerWidth')
         report['checks'].append('390px mobile viewport has no horizontal page overflow')
         p.screenshot(path=str(out / 'mobile.png'), full_page=True)
